@@ -43,16 +43,16 @@ drawbot.saveImage("sketch_output.png")
         self.templates_dir = project_path / 'templates'
     
     def create_sketch(self, name: str, template: Optional[str] = None) -> Path:
-        """Create a new sketch folder with sketch.py file.
+        """Create a new sketch folder with <folder_name>.py file.
         
         Args:
             name: Name for the sketch folder
             template: Optional template name to use
             
         Returns:
-            Path to the created sketch.py file
+            Path to the created <folder_name>.py file
         """
-        # Remove .py extension if provided (we always use sketch.py)
+        # Remove .py extension if provided (we always use <folder_name>.py)
         if name.endswith('.py'):
             name = name[:-3]
         
@@ -69,8 +69,8 @@ drawbot.saveImage("sketch_output.png")
         # Create the sketch folder
         sketch_folder.mkdir(parents=True, exist_ok=True)
         
-        # Create sketch.py file in the folder
-        sketch_file = sketch_folder / 'sketch.py'
+        # Create <folder_name>.py file in the folder
+        sketch_file = sketch_folder / f'{sketch_folder.name}.py'
         
         # Get template content
         if template:
@@ -86,7 +86,7 @@ drawbot.saveImage("sketch_output.png")
         if '{timestamp}' in content:
             content = content.format(timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
-        # Create the sketch.py file
+        # Create the <folder_name>.py file
         sketch_file.write_text(content)
         return sketch_file
     
@@ -134,16 +134,16 @@ drawbot.saveImage("sketch_output.png")
             name: Name of the sketch folder to find
             
         Returns:
-            Path to the sketch.py file if found, None otherwise
+            Path to the <folder_name>.py file if found, None otherwise
         """
         # Remove .py extension if provided (we look for folders, not files)
         if name.endswith('.py'):
             name = name[:-3]
         
-        # Look for sketch folder with sketch.py file
+        # Look for sketch folder with <folder_name>.py file
         sketch_folder = self.sketches_dir / name
         if sketch_folder.exists() and sketch_folder.is_dir():
-            sketch_file = sketch_folder / 'sketch.py'
+            sketch_file = sketch_folder / f'{sketch_folder.name}.py'
             if sketch_file.exists() and sketch_file.is_file():
                 return sketch_file
         
@@ -225,19 +225,19 @@ drawbot.saveImage("sketch_output.png")
         return metadata
     
     def list_all_sketches(self) -> List[Path]:
-        """List all sketch.py files in sketch folders.
+        """List all <folder_name>.py files in sketch folders.
         
         Returns:
-            List of all sketch.py file paths
+            List of all <folder_name>.py file paths
         """
         if not self.sketches_dir.exists():
             return []
         
         sketches = []
-        # Look for sketch.py files in subdirectories
+        # Look for <folder_name>.py files in subdirectories
         for item in self.sketches_dir.iterdir():
             if item.is_dir():
-                sketch_file = item / 'sketch.py'
+                sketch_file = item / f'{item.name}.py'
                 if sketch_file.exists() and sketch_file.is_file():
                     sketches.append(sketch_file)
         
