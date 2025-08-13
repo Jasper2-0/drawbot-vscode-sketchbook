@@ -1,1 +1,2 @@
 git+https://github.com/typemytype/drawbot
+watchdog>=6.0.0
