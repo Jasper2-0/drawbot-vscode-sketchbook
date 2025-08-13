@@ -11,7 +11,7 @@ class TestSketchRunnerFolders:
     """Test suite for sketch runner folder functionality."""
     
     def test_runs_sketch_from_folder(self):
-        """Test running a sketch.py file from a sketch folder."""
+        """Test running a <folder_name>.py file from a sketch folder."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
             sketches_dir = project_path / 'sketches'
@@ -20,7 +20,7 @@ class TestSketchRunnerFolders:
             # Create sketch folder structure
             sketch_folder = sketches_dir / 'my_sketch'
             sketch_folder.mkdir()
-            sketch_file = sketch_folder / 'sketch.py'
+            sketch_file = sketch_folder / 'my_sketch.py'
             
             sketch_content = """
 print("Running from folder")
@@ -64,7 +64,7 @@ with open('output.txt', 'w') as f:
             config_file.write_text('color=red,size=100')
             
             # Create sketch that reads data
-            sketch_file = sketch_folder / 'sketch.py'
+            sketch_file = sketch_folder / 'data_sketch.py'
             sketch_content = """
 import os
 from pathlib import Path
@@ -106,7 +106,7 @@ with open('result.txt', 'w') as f:
             assert "Sketch completed with data" in output_file.read_text()
     
     def test_validates_folder_based_sketch(self):
-        """Test syntax validation for sketch.py in folders."""
+        """Test syntax validation for <folder_name>.py in folders."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
             sketches_dir = project_path / 'sketches'
@@ -115,7 +115,7 @@ with open('result.txt', 'w') as f:
             # Valid sketch in folder
             valid_folder = sketches_dir / 'valid_sketch'
             valid_folder.mkdir()
-            valid_sketch = valid_folder / 'sketch.py'
+            valid_sketch = valid_folder / 'valid_sketch.py'
             valid_sketch.write_text("""
 print("Valid sketch")
 x = 42
@@ -140,7 +140,7 @@ y = x * 2
             # Invalid sketch in folder
             invalid_folder = sketches_dir / 'invalid_sketch'
             invalid_folder.mkdir()
-            invalid_sketch = invalid_folder / 'sketch.py'
+            invalid_sketch = invalid_folder / 'invalid_sketch.py'
             invalid_sketch.write_text("""
 print("Invalid sketch")
 undefined_var.method()  # NameError
@@ -177,7 +177,7 @@ def format_result(result):
 """)
             
             # Create main sketch that uses helper
-            sketch_file = sketch_folder / 'sketch.py'
+            sketch_file = sketch_folder / 'helper_sketch.py'
             sketch_content = """
 import sys
 from pathlib import Path
@@ -223,7 +223,7 @@ with open('modular_output.txt', 'w') as f:
             sketch_folder = sketches_dir / 'wd_test'
             sketch_folder.mkdir()
             
-            sketch_file = sketch_folder / 'sketch.py'
+            sketch_file = sketch_folder / 'complex_sketch.py'
             sketch_content = """
 import os
 from pathlib import Path

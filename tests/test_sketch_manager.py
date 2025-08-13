@@ -13,7 +13,7 @@ class TestSketchManager:
     """Test suite for sketch management operations."""
     
     def test_creates_new_sketch(self):
-        """Test creating a new sketch folder with sketch.py file."""
+        """Test creating a new sketch folder with <folder_name>.py file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
             sketches_dir = project_path / 'sketches'
@@ -24,16 +24,16 @@ class TestSketchManager:
             sm = SketchManager(project_path)
             sketch_path = sm.create_sketch('my_first_sketch')
             
-            # Should return path to sketch.py inside folder
+            # Should return path to <folder_name>.py inside folder
             assert sketch_path.exists(), "Sketch file should be created"
-            assert sketch_path.name == 'sketch.py', "Main file should be named sketch.py"
+            assert sketch_path.name == 'my_first_sketch.py', "Main file should be named my_first_sketch.py"
             assert sketch_path.parent.name == 'my_first_sketch', "Should be in sketch folder"
             assert sketch_path.parent.parent == sketches_dir, "Sketch folder should be in sketches directory"
             
             # Check folder structure
             sketch_folder = sketches_dir / 'my_first_sketch'
             assert sketch_folder.exists() and sketch_folder.is_dir(), "Should create sketch folder"
-            assert (sketch_folder / 'sketch.py').exists(), "Should create sketch.py file"
+            assert (sketch_folder / 'my_first_sketch.py').exists(), "Should create my_first_sketch.py file"
             
             # Check basic template content
             content = sketch_path.read_text()
@@ -68,7 +68,7 @@ db.saveImage('output.png')
             
             # Should create folder structure with template content
             assert sketch_path.exists(), "Sketch file should be created"
-            assert sketch_path.name == 'sketch.py', "Main file should be sketch.py"
+            assert sketch_path.name == 'red_rectangle.py', "Main file should be red_rectangle.py"
             assert sketch_path.parent.name == 'red_rectangle', "Should be in named folder"
             
             content = sketch_path.read_text()
@@ -89,7 +89,7 @@ db.saveImage('output.png')
             # Valid sketch in folder
             valid_folder = sketches_dir / 'valid_sketch'
             valid_folder.mkdir()
-            valid_sketch = valid_folder / 'sketch.py'
+            valid_sketch = valid_folder / 'valid_folder.py'
             valid_sketch.write_text("""
 import drawbot
 drawbot.size(400, 400)
@@ -101,7 +101,7 @@ drawbot.rect(10, 10, 100, 100)
             # Invalid sketch in folder
             invalid_folder = sketches_dir / 'invalid_sketch'
             invalid_folder.mkdir()
-            invalid_sketch = invalid_folder / 'sketch.py'
+            invalid_sketch = invalid_folder / 'invalid_folder.py'
             invalid_sketch.write_text("""
 import drawbot
 drawbot.size(400, 400
@@ -154,9 +154,9 @@ drawbot.rect(10, 10, 100, 100)  # Missing closing parenthesis
             circles_folder.mkdir()
             triangles_folder.mkdir()
             
-            # Create sketch.py files in folders
-            sketch1 = circles_folder / 'sketch.py'
-            sketch2 = triangles_folder / 'sketch.py'
+            # Create <folder_name>.py files in folders
+            sketch1 = circles_folder / 'circles.py'
+            sketch2 = triangles_folder / 'triangles.py'
             sketch1.write_text('# Circle sketch')
             sketch2.write_text('# Triangle sketch')
             
@@ -211,12 +211,12 @@ drawbot.rect(10, 10, 100, 100)  # Missing closing parenthesis
             
             # Create first sketch
             sketch1 = sm.create_sketch('test_sketch')
-            assert sketch1.name == 'sketch.py'
+            assert sketch1.name == 'test_sketch.py'
             assert sketch1.parent.name == 'test_sketch'
             
             # Create second sketch with same name
             sketch2 = sm.create_sketch('test_sketch')
-            assert sketch2.name == 'sketch.py'  # Always sketch.py
+            assert sketch2.name == 'test_sketch_1.py'  # Second sketch gets _1 suffix
             assert sketch2.parent.name != 'test_sketch'  # Folder should be modified
             assert 'test_sketch' in sketch2.parent.name
             assert sketch2.exists()
@@ -268,9 +268,9 @@ drawbot.size(400, 400)
             sketch2_folder.mkdir()
             sketch3_folder.mkdir()
             
-            (sketch1_folder / 'sketch.py').write_text('# Sketch 1')
-            (sketch2_folder / 'sketch.py').write_text('# Sketch 2')
-            (sketch3_folder / 'sketch.py').write_text('# Sketch 3')
+            (sketch1_folder / 'sketch1.py').write_text('# Sketch 1')
+            (sketch2_folder / 'sketch2.py').write_text('# Sketch 2')
+            (sketch3_folder / 'sketch3.py').write_text('# Sketch 3')
             
             # Create non-sketch folders (should be ignored)
             (sketches_dir / 'readme.txt').write_text('Not a sketch')
@@ -283,9 +283,10 @@ drawbot.size(400, 400)
             all_sketches = sm.list_all_sketches()
             
             assert len(all_sketches) == 3
-            # All should be sketch.py files
+            # All should be <folder_name>.py files
             sketch_names = [sketch.name for sketch in all_sketches]
-            assert all(name == 'sketch.py' for name in sketch_names)
+            expected_names = ['sketch1.py', 'sketch2.py', 'sketch3.py']
+            assert sorted(sketch_names) == sorted(expected_names)
             
             # Check parent folders
             folder_names = [sketch.parent.name for sketch in all_sketches]
@@ -367,7 +368,7 @@ drawbot.size(400, 400)
             assert sketch2_path.exists()
     
     def test_find_sketch_ignores_non_sketch_folders(self):
-        """Test that find_sketch only looks for folders with sketch.py files."""
+        """Test that find_sketch only looks for folders with <folder_name>.py files."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
             sketches_dir = project_path / 'sketches'
@@ -376,9 +377,9 @@ drawbot.size(400, 400)
             # Create valid sketch folder
             valid_folder = sketches_dir / 'valid_sketch'
             valid_folder.mkdir()
-            (valid_folder / 'sketch.py').write_text('# Valid sketch')
+            (valid_folder / 'valid_sketch.py').write_text('# Valid sketch')
             
-            # Create invalid folder (no sketch.py)
+            # Create invalid folder (no <folder_name>.py)
             invalid_folder = sketches_dir / 'invalid_folder'
             invalid_folder.mkdir()
             (invalid_folder / 'other.py').write_text('# Not a sketch')
@@ -395,7 +396,7 @@ drawbot.size(400, 400)
             # Should find valid sketch
             found = sm.find_sketch('valid_sketch')
             assert found is not None
-            assert found.name == 'sketch.py'
+            assert found.name == 'valid_sketch.py'
             
             # Should not find invalid folders
             not_found1 = sm.find_sketch('invalid_folder')
