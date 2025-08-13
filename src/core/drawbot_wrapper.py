@@ -54,6 +54,7 @@ class DrawBotWrapper:
         """Set canvas size."""
         self.canvas_width = width
         self.canvas_height = height
+        self._has_canvas = True
         self._execute_or_mock('size', width, height)
     
     def new_page(self):
@@ -194,9 +195,86 @@ class DrawBotWrapper:
     def get_pdf_data(self) -> bytes:
         """Get PDF data for preview."""
         if self.mock_mode:
-            return b'%PDF-1.4 mock pdf data'
+            return self._generate_mock_pdf_data()
         
         try:
-            return drawbot.pdfImage()
-        except:
-            return b'%PDF-1.4 mock pdf data'
+            # Ensure we have a canvas to work with
+            if not hasattr(self, '_has_canvas') or not self._has_canvas:
+                # Create a default canvas if none exists
+                drawbot.size(self.canvas_width, self.canvas_height)
+                self._has_canvas = True
+            
+            # Get PDF data from DrawBot
+            pdf_data = drawbot.pdfImage()
+            
+            # Validate the PDF data
+            if pdf_data and len(pdf_data) > 50:
+                return pdf_data
+            else:
+                # Fall back to mock data if PDF is too small/invalid
+                self.mock_mode = True
+                return self._generate_mock_pdf_data()
+                
+        except Exception as e:
+            # Switch to mock mode on any error
+            self.mock_mode = True
+            return self._generate_mock_pdf_data()
+    
+    def _generate_mock_pdf_data(self) -> bytes:
+        """Generate realistic mock PDF data for testing and fallback."""
+        # Create a more realistic mock PDF with proper structure
+        # This simulates what a real PDF would look like
+        mock_pdf = b'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 ''' + f'{self.canvas_width} {self.canvas_height}'.encode() + b''']
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+(Mock PDF Preview) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000200 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+294
+%%EOF'''
+        return mock_pdf
