@@ -1,12 +1,12 @@
 # DrawBot VSCode Sketchbook
 
-A Processing-like creative coding environment for Python using DrawBot, integrated with VSCode for seamless sketch development, experimentation, and iteration.
+A Processing-inspired creative coding sketchbook for Python using DrawBot. Organize, create, and execute generative art sketches with a powerful command-line interface and project management system.
 
 > **⚠️ Platform Requirement**: This project requires **macOS** as DrawBot is a macOS-only graphics library. DrawBot leverages macOS's Core Text and Core Graphics frameworks for high-quality typography and graphics rendering.
 
 ## 🎨 Overview
 
-DrawBot VSCode Sketchbook enables artists, designers, and creative coders to rapidly prototype and iterate on generative art, data visualizations, and interactive graphics using Python and DrawBot's powerful 2D graphics capabilities within a familiar development environment.
+DrawBot VSCode Sketchbook enables artists, designers, and creative coders to rapidly prototype and iterate on generative art, data visualizations, and creative graphics using Python and DrawBot's powerful 2D graphics capabilities. The system provides organized project management, template-based sketch creation, and safe execution with comprehensive error handling.
 
 ## ✨ Features
 
@@ -20,13 +20,14 @@ DrawBot VSCode Sketchbook enables artists, designers, and creative coders to rap
 
 ### 🖥️ Command Line Interface
 
-- **Professional CLI** - Simple and intuitive `sketchbook` command.
-- **Project Initialization** - Set up complete project structure with one command
-- **Sketch Creation** - Generate new sketches from templates with automatic naming
-- **Template Browsing** - List and explore available sketch starting points
-- **Sketch Execution** - Run sketches safely with comprehensive error reporting
-- **Validation** - Check syntax before execution to catch errors early
-- **Project Status** - View project information and statistics
+- **Professional CLI** - Simple and intuitive `sketchbook` command with 6 core commands
+- **Project Initialization** - Set up complete project structure with one command (`init`)
+- **Sketch Creation** - Generate new sketches from templates with automatic naming (`new`)
+- **Template Browsing** - List and explore available sketch starting points (`templates`)
+- **Sketch Management** - List all sketches in the project (`list`)
+- **Sketch Execution** - Run sketches safely with comprehensive error reporting (`run`)
+- **Validation** - Check syntax before execution to catch errors early (`validate`)
+- **Project Status** - View project information and statistics (`info`)
 
 ### 📝 Built-in Templates
 
@@ -118,7 +119,7 @@ drawbot-vscode-sketchbook/
 
 ## 🧪 Testing
 
-The project uses comprehensive Test-Driven Development with 35+ passing tests:
+The project uses comprehensive Test-Driven Development with 43 passing tests:
 
 ```bash
 # Run all tests
