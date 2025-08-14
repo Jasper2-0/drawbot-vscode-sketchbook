@@ -4,9 +4,9 @@ DrawBot API wrapper for consistent interface and testing support.
 from typing import List, Dict, Any, Tuple, Optional, Union
 import sys
 
-# Global drawbot import
+# Global drawBot import (note capital B)
 try:
-    import drawbot
+    import drawBot as drawbot
 except ImportError:
     drawbot = None
 

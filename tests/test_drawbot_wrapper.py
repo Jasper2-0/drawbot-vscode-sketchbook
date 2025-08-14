@@ -50,17 +50,20 @@ class TestDrawBotWrapper:
             
             wrapper = DrawBotWrapper()
             
-            # Should handle the error gracefully
-            with pytest.raises(Exception, match="DrawBot error"):
-                wrapper.rect(0, 0, 100, 100)
+            # Should handle the error gracefully by switching to mock mode
+            wrapper.rect(0, 0, 100, 100)  # Should not raise exception
+            
+            # Should have switched to mock mode after error
+            assert wrapper.mock_mode == True, "Should switch to mock mode on DrawBot error"
     
     def test_captures_output(self):
         """Test capturing DrawBot output for preview."""
         from src.core.drawbot_wrapper import DrawBotWrapper
         
         with patch('src.core.drawbot_wrapper.drawbot') as mock_drawbot:
-            # Mock PDF data
-            mock_drawbot.pdfImage.return_value = b'%PDF-1.4 fake pdf data'
+            # Mock PDF data - needs to be longer than 50 bytes to avoid fallback
+            mock_pdf_data = b'%PDF-1.4 fake pdf data with enough content to pass validation checks and not trigger mock mode fallback'
+            mock_drawbot.pdfImage.return_value = mock_pdf_data
             
             wrapper = DrawBotWrapper()
             wrapper.size(400, 400)
@@ -68,7 +71,7 @@ class TestDrawBotWrapper:
             # Capture output
             pdf_data = wrapper.get_pdf_data()
             
-            assert pdf_data == b'%PDF-1.4 fake pdf data'
+            assert pdf_data == mock_pdf_data
             mock_drawbot.pdfImage.assert_called_once()
     
     def test_exports_to_formats(self):

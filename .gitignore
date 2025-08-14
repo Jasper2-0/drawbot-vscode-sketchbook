@@ -224,6 +224,9 @@ output.mp4
 *_sketch_output.txt
 python_sketch_output.txt
 
+# Test sketches (not part of the main project)
+sketches/test_*
+
 # macOS
 .DS_Store
 .DS_Store?

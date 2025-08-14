@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from core.project_structure import ProjectStructure
-from core.sketch_manager import SketchManager
-from core.sketch_runner import SketchRunner
+from ..core.project_structure import ProjectStructure
+from ..core.sketch_manager import SketchManager
+from ..core.sketch_runner import SketchRunner
 
 
 def init_project(args):
@@ -286,6 +286,7 @@ def project_info(args):
     return 0
 
 
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -347,6 +348,7 @@ Examples:
     validate_parser = subparsers.add_parser("validate", help="Validate sketch syntax")
     validate_parser.add_argument("name", help="Name of the sketch to validate")
     validate_parser.set_defaults(func=validate_sketch)
+
 
     # Info command
     info_parser = subparsers.add_parser("info", help="Show project information")

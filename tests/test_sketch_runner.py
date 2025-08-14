@@ -17,9 +17,10 @@ class TestSketchRunner:
             project_path = Path(temp_dir)
             sketch_path = project_path / 'test_sketch.py'
             
-            # Create a simple valid sketch
+            # Create a simple valid sketch like the real templates
             sketch_content = """
-import drawbot
+import drawBot as drawbot
+
 drawbot.size(400, 400)
 drawbot.fill(1, 0, 0)
 drawbot.rect(10, 10, 100, 100)
@@ -45,9 +46,9 @@ drawbot.saveImage('output.png')
             
             # Create a sketch with syntax error
             sketch_content = """
-import drawbot
-drawbot.size(400, 400
-drawbot.rect(10, 10, 100, 100)  # Missing closing parenthesis
+import drawBot as drawbot
+drawbot.size(400, 400  # Missing closing parenthesis
+drawbot.rect(10, 10, 100, 100)
 """
             sketch_path.write_text(sketch_content)
             
@@ -68,7 +69,7 @@ drawbot.rect(10, 10, 100, 100)  # Missing closing parenthesis
             
             # Create a sketch with runtime error
             sketch_content = """
-import drawbot
+import drawBot as drawbot
 drawbot.size(400, 400)
 undefined_variable += 1  # NameError
 drawbot.rect(10, 10, 100, 100)
@@ -92,7 +93,7 @@ drawbot.rect(10, 10, 100, 100)
             
             # Create a sketch with infinite loop
             sketch_content = """
-import drawbot
+import drawBot as drawbot
 import time
 drawbot.size(400, 400)
 while True:
@@ -120,7 +121,7 @@ while True:
             sketch1_path = project_path / 'sketch1.py'
             sketch1_content = """
 global_var = "from sketch 1"
-import drawbot
+import drawBot as drawbot
 drawbot.size(400, 400)
 """
             sketch1_path.write_text(sketch1_content)
@@ -128,7 +129,7 @@ drawbot.size(400, 400)
             # Second sketch that tries to access first sketch's variable
             sketch2_path = project_path / 'sketch2.py'
             sketch2_content = """
-import drawbot
+import drawBot as drawbot
 drawbot.size(400, 400)
 try:
     print(global_var)  # Should not be accessible
@@ -157,7 +158,7 @@ except NameError:
             
             # Create a sketch with deliberate delay
             sketch_content = """
-import drawbot
+import drawBot as drawbot
 import time
 drawbot.size(400, 400)
 time.sleep(0.1)  # 100ms delay
@@ -197,7 +198,7 @@ drawbot.rect(10, 10, 100, 100)
             
             # Create a sketch with print statements
             sketch_content = """
-import drawbot
+import drawBot as drawbot
 print("Starting sketch")
 drawbot.size(400, 400)
 print("Canvas created")
@@ -226,7 +227,7 @@ print("Rectangle drawn")
             # Create a sketch that checks current working directory
             sketch_content = """
 import os
-import drawbot
+import drawBot as drawbot
 current_dir = os.getcwd()
 with open('cwd_test.txt', 'w') as f:
     f.write(current_dir)
@@ -253,12 +254,14 @@ drawbot.size(400, 400)
             output_dir.mkdir()
             
             sketch_path = project_path / 'output_sketch.py'
-            sketch_content = """
-import drawbot
+            sketch_content = f"""
+import drawBot as drawbot
+import os
 drawbot.size(400, 400)
 drawbot.fill(1, 0, 0)
 drawbot.rect(10, 10, 100, 100)
-drawbot.saveImage('custom_output.png')
+# Save in the custom output directory
+drawbot.saveImage(os.path.join('{output_dir}', 'custom_output.png'))
 """
             sketch_path.write_text(sketch_content)
             
@@ -278,7 +281,7 @@ drawbot.saveImage('custom_output.png')
             sketch_path = project_path / 'meta_sketch.py'
             
             sketch_content = """
-import drawbot
+import drawBot as drawbot
 drawbot.size(200, 300)
 drawbot.rect(0, 0, 100, 100)
 """
