@@ -19,14 +19,14 @@ drawbot.fontSize(48)
 drawbot.font("Helvetica-Bold")
 title_text = "CREATIVE"
 text_width, text_height = drawbot.textSize(title_text)
-drawbot.text(title_text, (drawbot.width() - text_width) / 2, 650)
+drawbot.text(title_text, ((drawbot.width() - text_width) / 2, 650))
 
 # Subtitle with different styling
 drawbot.fontSize(24)
 drawbot.font("Helvetica-Light")
 subtitle = "Typography"
 sub_width, sub_height = drawbot.textSize(subtitle)
-drawbot.text(subtitle, (drawbot.width() - sub_width) / 2, 610)
+drawbot.text(subtitle, ((drawbot.width() - sub_width) / 2, 610))
 
 # Circular text arrangement
 center_x = drawbot.width() / 2
@@ -71,7 +71,7 @@ for i, word in enumerate(words):
     
     # Create shadow effect
     drawbot.fill(0, 0, 0, 0.3)
-    drawbot.text(word, 55, y_positions[i] - 3)
+    drawbot.text(word, (55, y_positions[i] - 3))
     
     # Main text with color
     hue = i / len(words)
@@ -80,7 +80,7 @@ for i, word in enumerate(words):
     else:
         drawbot.fill(0.3, hue, 1 - hue)
     
-    drawbot.text(word, 50, y_positions[i])
+    drawbot.text(word, (50, y_positions[i]))
 
 # Footer text
 drawbot.fontSize(12)
@@ -88,7 +88,7 @@ drawbot.fill(0.5)
 drawbot.font("Helvetica")
 footer = "Generated with DrawBot"
 footer_width, _ = drawbot.textSize(footer)
-drawbot.text(footer, (drawbot.width() - footer_width) / 2, 30)
+drawbot.text(footer, ((drawbot.width() - footer_width) / 2, 30))
 
 # Save the result
 drawbot.saveImage("typography_art_output.png")

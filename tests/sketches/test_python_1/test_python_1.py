@@ -1,17 +1,17 @@
 # DrawBot Sketch
 # Created: 2025-08-13 10:42:25
 
-import drawbot
+import drawBot as db
 
 # Set canvas size
-drawbot.size(400, 400)
+db.size(400, 400)
 
 # Set background color
-drawbot.fill(1)  # White background
-drawbot.rect(0, 0, drawbot.width(), drawbot.height())
+db.fill(1)  # White background
+db.rect(0, 0, db.width(), db.height())
 
 # Your drawing code here
-drawbot.fill(0)  # Black
+db.fill(0)  # Black
 drawbot.fontSize(24)
 drawbot.text("Hello DrawBot!", (50, 200))
 

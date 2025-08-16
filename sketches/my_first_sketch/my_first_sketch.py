@@ -1,7 +1,7 @@
 # Minimal Sketch Template
 # A clean starting point for your creative ideas
 
-import drawbot
+import drawBot as drawbot
 
 # Set canvas size
 drawbot.size(400, 400)
@@ -10,11 +10,13 @@ drawbot.size(400, 400)
 drawbot.fill(1)  # White
 drawbot.rect(0, 0, drawbot.width(), drawbot.height())
 
+drawbot.fill(1, 0, 0)
+drawbot.rect(10, 10, 200, 200)
 # Your code goes here...
 # For example:
 drawbot.fill(0)  # Black
 drawbot.fontSize(20)
-drawbot.text("Start creating!", (50, 200))
+drawbot.text("Start creating wonderful things", (50, 200))
 
 # Save the result
 drawbot.saveImage("output.png")
