@@ -12,8 +12,8 @@ This PRD covers advanced features that extend beyond the core MVP functionality.
 
 ### Target Implementation
 
-**Timeline**: Post-MVP, after core functionality is validated  
-**Priority**: Enhancement phase - nice-to-have features  
+**Timeline**: Post-MVP, after core functionality is validated
+**Priority**: Enhancement phase - nice-to-have features
 **Dependencies**: Requires stable core system with live preview functionality
 
 ---
@@ -189,9 +189,9 @@ Comprehensive animation system enabling frame-based animations, timeline managem
 
 ## 📋 Implementation Priority
 
-**Phase 1**: Basic parameter controls (sliders, toggles)  
-**Phase 2**: Animation timeline and basic export  
-**Phase 3**: Advanced controls and complex animations  
+**Phase 1**: Basic parameter controls (sliders, toggles)
+**Phase 2**: Animation timeline and basic export
+**Phase 3**: Advanced controls and complex animations
 **Phase 4**: Professional and collaboration features
 
 These advanced features represent the evolution of the DrawBot Sketchbook from a basic creative coding tool into a professional-grade creative development environment, while maintaining the simplicity and accessibility of the core system.

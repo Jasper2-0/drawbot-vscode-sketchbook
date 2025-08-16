@@ -48,7 +48,7 @@ The DrawBot VSCode Sketchbook is now a fully functional creative coding environm
 
 - ✅ **Clean user workspace** - `sketches/` contains only user creative work
 - ✅ **Educational examples** - `examples/` showcases DrawBot + libraries (drawbotgrid)
-- ✅ **Hidden test sketches** - `tests/sketches/` keeps system tests out of user view  
+- ✅ **Hidden test sketches** - `tests/sketches/` keeps system tests out of user view
 - ✅ **Multi-directory support** - Web interface displays both sketches and examples
 - ✅ **Intelligent categorization** - Visual badges and sections for different content types
 
@@ -64,7 +64,7 @@ The DrawBot VSCode Sketchbook is now a fully functional creative coding environm
 ```bash
 43 tests passing across 4 test suites:
 ✅ 5 tests - Project structure validation
-✅ 18 tests - Sketch management operations  
+✅ 18 tests - Sketch management operations
 ✅ 14 tests - DrawBot wrapper functionality
 ✅ 11 tests - Sketch execution and safety
 ```

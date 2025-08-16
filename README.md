@@ -1,6 +1,6 @@
 # DrawBot VSCode Sketchbook
 
-A Processing-inspired creative coding sketchbook for Python using DrawBot. Create, organize, and preview generative art sketches with an intuitive command-line interface and real-time web-based live preview studio.
+A Processing-inspired creative coding sketchbook for Python using DrawBot. Create, organize, and preview generative art sketches with an intuitive command-line interface and real-time web-based live preview studio. Features comprehensive code quality tooling with automated formatting, type safety, and pre-commit hooks.
 
 > **⚠️ Platform Requirement**: This project requires **macOS** as DrawBot is a macOS-only graphics library. DrawBot leverages macOS's Core Text and Core Graphics frameworks for high-quality typography and graphics rendering.
 
@@ -68,19 +68,17 @@ DrawBot VSCode Sketchbook enables artists, designers, and creative coders to rap
     source venv/bin/activate
     ```
 
-3. Install the project in editable mode:
+3. Install the project with dependencies:
 
     ```bash
+    # For basic usage
     pip install -e .
+
+    # For development (includes pre-commit hooks, testing tools, type checking)
+    pip install -e .[dev]
     ```
 
-    This command installs the project and creates the `sketchbook` command-line tool.
-
-4. Install development dependencies (for running tests):
-
-    ```bash
-    pip install -r requirements-dev.txt
-    ```
+    This installs the project and creates the `sketchbook` command-line tool.
 
 ### Initialize Your First Project
 
@@ -144,23 +142,59 @@ drawbot-vscode-sketchbook/
 └── pyproject.toml            # Project packaging configuration
 ```
 
+## 🛠️ Code Quality & Development
+
+The project maintains high code quality standards with comprehensive tooling:
+
+### Code Quality Features
+- **Pre-commit Hooks** - Automated formatting and quality checks on every commit
+- **Black Formatting** - Consistent Python code style across the entire codebase
+- **MyPy Type Safety** - Complete type safety with explicit type annotations
+- **Comprehensive Testing** - 43+ passing tests with TDD approach
+
+### Development Setup
+```bash
+# Install development dependencies and pre-commit hooks
+source venv/bin/activate
+pip install -e .[dev]
+pre-commit install
+
+# Run all tests
+pytest -v
+
+# Run type checking
+mypy src/
+
+# Format code (runs automatically on commit)
+black .
+```
+
 ## 🧪 Testing
 
-The project uses comprehensive Test-Driven Development with 43 passing tests:
+The project uses comprehensive Test-Driven Development with 43+ passing tests covering:
+- Core sketch execution and management
+- Live preview server functionality
+- Cache system and image processing
+- Error handling and validation
+- WebSocket real-time updates
 
 ```bash
 # Run all tests
 source venv/bin/activate
 pytest -v
+
+# Run specific test categories
+pytest tests/test_sketch_runner.py -v
+pytest tests/test_live_preview_server.py -v
 ```
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Write tests for new functionality
-4. Implement features following TDD approach
-5. Ensure all tests pass
+3. Set up pre-commit hooks (`pre-commit install`)
+4. Write tests for new functionality following TDD approach
+5. Ensure all tests pass and code quality checks pass
 6. Submit a pull request
 
 ## 📄 License

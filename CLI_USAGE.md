@@ -1,6 +1,6 @@
 # DrawBot Sketchbook CLI
 
-A command-line interface for the DrawBot VSCode Sketchbook system.
+A command-line interface for the DrawBot VSCode Sketchbook system with comprehensive code quality tooling and real-time web preview capabilities.
 
 ## Quick Start
 
@@ -62,7 +62,7 @@ List all sketches in the current project.
 
 Opens a beautiful web interface at `http://localhost:8083` featuring:
 - Real-time sketch execution and preview
-- Visual gallery of your sketches and examples  
+- Visual gallery of your sketches and examples
 - Error debugging with helpful placeholders
 - WebSocket live updates
 - Multi-format support (PNG, GIF, JPEG, PDF)
@@ -111,4 +111,23 @@ sketchbook list
 
 # Check project status
 sketchbook info
+
+# 🎨 Start live preview studio for visual development
+sketchbook live
+```
+
+## Code Quality Integration
+
+The CLI integrates with the project's comprehensive code quality tooling:
+
+```bash
+# Pre-commit hooks run automatically on git commits
+git add my_sketch.py
+git commit -m "Add new sketch"  # Triggers Black formatting + MyPy checks
+
+# Manual code quality commands
+black .              # Format all Python files
+mypy src/            # Type checking
+pytest -v            # Run comprehensive test suite
+pre-commit run --all-files  # Run all quality checks
 ```

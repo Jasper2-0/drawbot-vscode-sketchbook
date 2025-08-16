@@ -26,7 +26,7 @@ print(f"📏 Grid has {len(grid.columns)} columns and {len(grid.rows)} rows")
 # Test drawing with the grid - draw some colorful rectangles
 colors = [
     (1, 0.2, 0.2),    # Red
-    (0.2, 0.8, 0.2),  # Green  
+    (0.2, 0.8, 0.2),  # Green
     (0.2, 0.2, 1),    # Blue
     (1, 0.8, 0.2),    # Orange
     (0.8, 0.2, 0.8),  # Purple
@@ -37,20 +37,20 @@ for row in range(3):
     for col in range(5):
         if col < len(colors):
             db.fill(*colors[col], 0.7)  # Use color with transparency
-            
+
             # Get the grid cell coordinates
             x = grid.columns[col]
             y = grid.rows[row]
             w = grid.columns * 1  # Width of 1 column
             h = grid.rows * 1     # Height of 1 row
-            
+
             db.rect(x, y, w, h)
 
 # Add text using grid positioning
 db.fill(0)  # Black
 db.fontSize(32)
 text_x = grid.columns[0]
-text_y = grid.rows[4] 
+text_y = grid.rows[4]
 db.text("DrawBotGrid Test", (text_x, text_y))
 
 # Draw grid lines for visualization
@@ -65,10 +65,10 @@ for i in range(len(grid.columns) + 1):
         x = grid.columns[i-1] + (grid.columns * 1)
     db.line((x, 0), (x, db.height()))
 
-# Draw row lines  
+# Draw row lines
 for i in range(len(grid.rows) + 1):
     if i < len(grid.rows):
-        y = grid.rows[i] 
+        y = grid.rows[i]
     else:
         y = grid.rows[i-1] + (grid.rows * 1)
     db.line((0, y), (db.width(), y))

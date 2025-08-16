@@ -1,9 +1,10 @@
 # Advanced Layout Example
 # Demonstrates combining multiple grid types for complex layouts
 
-import drawBot as db
-from drawBotGrid import Grid, BaselineGrid, ColumnGrid, baselineGridTextBox
 import os
+
+import drawBot as db
+from drawBotGrid import BaselineGrid, ColumnGrid, Grid, baselineGridTextBox
 
 # Set up A4 landscape page size (842 x 595)
 db.size(842, 595)
@@ -18,7 +19,7 @@ main_grid = Grid.from_margins(
     column_subdivisions=12,  # 12-column grid for flexibility
     row_subdivisions=8,
     column_gutter=8,
-    row_gutter=8
+    row_gutter=8,
 )
 
 # Create baseline grid for text
@@ -28,7 +29,9 @@ print("✅ Created complex layout with 12×8 grid and 14pt baselines")
 
 # Header section - full width
 db.fill(0.1, 0.3, 0.6)  # Dark blue
-db.rect(main_grid.columns[0], main_grid.rows[0], main_grid.columns * 12, main_grid.rows * 1)
+db.rect(
+    main_grid.columns[0], main_grid.rows[0], main_grid.columns * 12, main_grid.rows * 1
+)
 
 db.fill(1, 1, 1)  # White text
 db.font("Helvetica-Bold")
@@ -64,8 +67,13 @@ Quick Links
 
 baselineGridTextBox(
     sidebar_text,
-    (main_grid.columns[0] + 10, main_grid.rows[1] + 10, main_grid.columns * 3 - 20, sidebar_height - 20),
-    baselines
+    (
+        main_grid.columns[0] + 10,
+        main_grid.rows[1] + 10,
+        main_grid.columns * 3 - 20,
+        sidebar_height - 20,
+    ),
+    baselines,
 )
 
 # Main content area - 6 columns wide
@@ -92,7 +100,7 @@ Grid systems provide structure and consistency to design layouts. They help desi
 
 Key Benefits of Grid Systems:
 • Consistency across pages and sections
-• Improved readability and scanability  
+• Improved readability and scanability
 • Faster design iteration and decision-making
 • Professional, polished appearance
 • Better responsive design adaptability
@@ -102,7 +110,7 @@ A well-implemented grid system serves as an invisible foundation that supports c
 baselineGridTextBox(
     article_text,
     (content_x + 15, main_grid.rows[1] + 15, content_width - 30, content_height - 30),
-    baselines
+    baselines,
 )
 
 # Image placeholder - 3 columns wide
@@ -135,8 +143,13 @@ Understanding how grids work helps designers create more effective layouts. The 
 
 baselineGridTextBox(
     bottom_text,
-    (main_grid.columns[3] + 10, bottom_y + 10, main_grid.columns * 4 - 20, bottom_height - 20),
-    baselines
+    (
+        main_grid.columns[3] + 10,
+        bottom_y + 10,
+        main_grid.columns * 4 - 20,
+        bottom_height - 20,
+    ),
+    baselines,
 )
 
 # Right bottom section
@@ -152,8 +165,13 @@ stats_text = """Design Statistics
 
 baselineGridTextBox(
     stats_text,
-    (main_grid.columns[7] + 10, bottom_y + 10, main_grid.columns * 5 - 20, bottom_height - 20),
-    baselines
+    (
+        main_grid.columns[7] + 10,
+        bottom_y + 10,
+        main_grid.columns * 5 - 20,
+        bottom_height - 20,
+    ),
+    baselines,
 )
 
 # Footer
@@ -163,7 +181,10 @@ db.rect(main_grid.columns[0], footer_y, main_grid.columns * 12, main_grid.rows *
 
 db.fill(1, 1, 1)
 db.fontSize(9)
-db.text("© 2024 DrawBotGrid Examples - Advanced Layout Demonstration", (main_grid.columns[0] + 20, footer_y + 15))
+db.text(
+    "© 2024 DrawBotGrid Examples - Advanced Layout Demonstration",
+    (main_grid.columns[0] + 20, footer_y + 15),
+)
 
 # Optional: Draw grid guidelines (commented out for clean final result)
 # db.stroke(1, 0, 0, 0.1)

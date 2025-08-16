@@ -138,7 +138,7 @@ def list_sketches(args):
         # Group sketches by category
         sketches_by_category = {}
         for sketch in all_sketches:
-            category = sketch['category']
+            category = sketch["category"]
             if category not in sketches_by_category:
                 sketches_by_category[category] = []
             sketches_by_category[category].append(sketch)
@@ -149,11 +149,11 @@ def list_sketches(args):
         # Display sketches by category
         for category, sketches in sorted(sketches_by_category.items()):
             print(f"  {category}:")
-            for sketch in sorted(sketches, key=lambda s: s['name']):
-                icon = "🎨" if sketch['source_type'] == 'sketch' else "📚"
-                name = sketch['name']
-                display_name = sketch['display_name']
-                
+            for sketch in sorted(sketches, key=lambda s: s["name"]):
+                icon = "🎨" if sketch["source_type"] == "sketch" else "📚"
+                name = sketch["name"]
+                display_name = sketch["display_name"]
+
                 if name == display_name:
                     print(f"    {icon} {name}")
                 else:
@@ -276,11 +276,11 @@ def project_info(args):
 
             sm = SketchManager(project_path)
             all_sketches = sm.list_all_sketches()
-            
+
             # Count by source type
-            user_sketches = [s for s in all_sketches if s['source_type'] == 'sketch']
-            examples = [s for s in all_sketches if s['source_type'] == 'example']
-            
+            user_sketches = [s for s in all_sketches if s["source_type"] == "sketch"]
+            examples = [s for s in all_sketches if s["source_type"] == "example"]
+
             print(f"🎨 Your sketches: {len(user_sketches)}")
             print(f"📚 Examples: {len(examples)}")
             print(f"📝 Total: {len(all_sketches)}")
@@ -318,8 +318,9 @@ def start_live_server(args):
 
         # Import server components
         try:
-            from ..server.live_preview_server import LivePreviewServer, create_app
             import uvicorn
+
+            from ..server.live_preview_server import LivePreviewServer, create_app
         except ImportError as e:
             print(f"❌ Failed to import server dependencies: {e}")
             print("Make sure FastAPI and uvicorn are installed:")
@@ -327,8 +328,8 @@ def start_live_server(args):
             return 1
 
         # Set up paths
-        sketches_path = project_path / 'sketches'
-        cache_dir = project_path / 'cache'
+        sketches_path = project_path / "sketches"
+        cache_dir = project_path / "cache"
         cache_dir.mkdir(exist_ok=True)
 
         # Create server
@@ -352,7 +353,7 @@ def start_live_server(args):
         print()
 
         # Start server
-        uvicorn.run(app, host='127.0.0.1', port=args.port)
+        uvicorn.run(app, host="127.0.0.1", port=args.port)
 
     except KeyboardInterrupt:
         print("\n👋 Live preview server stopped")
@@ -362,7 +363,6 @@ def start_live_server(args):
         return 1
 
     return 0
-
 
 
 def main():
@@ -429,7 +429,6 @@ Examples:
     validate_parser.add_argument("name", help="Name of the sketch to validate")
     validate_parser.set_defaults(func=validate_sketch)
 
-
     # Info command
     info_parser = subparsers.add_parser("info", help="Show project information")
     info_parser.set_defaults(func=project_info)
@@ -441,7 +440,7 @@ Examples:
         "-p",
         type=int,
         default=8083,
-        help="Port to run the server on (default: 8083)"
+        help="Port to run the server on (default: 8083)",
     )
     live_parser.set_defaults(func=start_live_server)
 
