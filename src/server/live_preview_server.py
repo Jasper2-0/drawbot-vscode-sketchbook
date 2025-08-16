@@ -23,6 +23,7 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from ..core.preview_cache import PreviewCache
 from ..core.preview_engine import PreviewEngine, PreviewResult
@@ -246,10 +247,12 @@ class LivePreviewServer:
         self.execution_stats["total_executions"] += 1
 
         try:
-            # Execute sketch
-            result = self.preview_engine.execute_sketch(
-                validation.resolved_path, sketch_name
-            )
+            # Execute sketch - ensure absolute path
+            sketch_path = validation.resolved_path
+            if not sketch_path.is_absolute():
+                sketch_path = self.project_path.parent / sketch_path
+
+            result = self.preview_engine.execute_sketch(sketch_path, sketch_name)
 
             # Update stats
             if result.success:
@@ -334,70 +337,6 @@ class LivePreviewServer:
             "cache_stats": cache_stats,
         }
 
-    def _render_sketch_card(self, sketch):
-        """Helper method to render a sketch card."""
-        # Determine preview status with styling
-        if sketch["has_preview"]:
-            preview_badge = '<div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>Preview Ready</div>'
-            card_gradient = "from-green-50 to-emerald-50"
-        else:
-            preview_badge = '<div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><span class="w-2 h-2 bg-gray-400 rounded-full mr-1"></span>No Preview</div>'
-            card_gradient = "from-blue-50 to-indigo-50"
-
-        # Add category badge
-        source_type = sketch.get("source_type", "sketch")
-        if source_type == "example":
-            category_badge = '<div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">📚 Example</div>'
-            card_gradient = "from-purple-50 to-pink-50"
-        else:
-            category_badge = '<div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">🎨 Sketch</div>'
-
-        # Determine display name
-        display_name = sketch.get("display_name", sketch["name"])
-
-        # Format file size nicely
-        size_kb = sketch["size_bytes"] / 1024
-        size_display = (
-            f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb/1024:.1f} MB"
-        )
-
-        # Format date nicely
-        date_display = sketch["modified_at"][:19].replace("T", " ")
-
-        return f"""
-            <div class="group relative">
-                <div class="bg-gradient-to-br {card_gradient} rounded-2xl shadow-lg border border-white/60 p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 h-full">
-                    <div class="absolute top-4 right-4 flex flex-wrap gap-1">
-                        {preview_badge}
-                        {category_badge}
-                    </div>
-
-                    <div class="mb-6">
-                        <div class="text-6xl mb-4 opacity-20 group-hover:opacity-30 transition-opacity">🎨</div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">{display_name}</h3>
-                        <div class="space-y-2 text-sm text-gray-600">
-                            <div class="flex items-center gap-2">
-                                <span class="text-blue-500">📁</span>
-                                <span>{size_display}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-500">🕒</span>
-                                <span>{date_display}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="/sketch/{sketch['name']}"
-                       class="block w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-center group-hover:scale-105">
-                        <span class="flex items-center justify-center gap-2">
-                            <span class="text-lg">🚀</span>
-                            <span>Open Live Preview</span>
-                        </span>
-                    </a>
-                </div>
-            </div>
-        """
-
 
 def create_app(server: LivePreviewServer) -> FastAPI:
     """Create FastAPI application with all endpoints.
@@ -413,6 +352,13 @@ def create_app(server: LivePreviewServer) -> FastAPI:
         description="Real-time preview server for DrawBot sketches",
         version="2.0.0",
     )
+
+    # Set up templates and static files
+    templates_dir = Path(__file__).parent / "templates"
+    static_dir = Path(__file__).parent / "static"
+
+    templates = Jinja2Templates(directory=str(templates_dir))
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     # Add security middleware
     app.add_middleware(server.security_middleware.get_middleware_class())
@@ -430,180 +376,47 @@ def create_app(server: LivePreviewServer) -> FastAPI:
         }
 
     @app.get("/", response_class=HTMLResponse)
-    async def sketch_list():
+    async def sketch_list(request: Request):
         """Main page showing available sketches."""
         sketches = server.get_available_sketches()
 
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>DrawBot Live Preview Studio</title>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <script src="https://cdn.tailwindcss.com"></script>
-            <script>
-                tailwind.config = {{
-                    theme: {{
-                        extend: {{
-                            animation: {{
-                                'float': 'float 6s ease-in-out infinite',
-                                'pulse-slow': 'pulse 3s infinite',
-                            }}
-                        }}
-                    }}
-                }}
-            </script>
-            <style>
-                @keyframes float {{
-                    0%, 100% {{ transform: translateY(0px); }}
-                    50% {{ transform: translateY(-10px); }}
-                }}
-            </style>
-        </head>
-        <body class="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-screen">
-            <!-- Hero Section -->
-            <div class="relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                <div class="max-w-7xl mx-auto px-6 py-12">
-                    <div class="text-center">
-                        <h1 class="text-5xl font-bold mb-4 animate-float">
-                            🎨 DrawBot Live Preview Studio
-                        </h1>
-                        <p class="text-xl text-purple-100 mb-8">
-                            Real-time sketch development with instant visual feedback
-                        </p>
+        # Prepare data for template
+        user_sketches = [s for s in sketches if s.get("source_type") == "sketch"]
+        examples = [s for s in sketches if s.get("source_type") == "example"]
 
-                        <!-- Stats Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                                <div class="text-3xl font-bold">{len([s for s in sketches if s.get('source_type') == 'sketch'])}</div>
-                                <div class="text-purple-100">🎨 Your Sketches</div>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                                <div class="text-3xl font-bold">{len([s for s in sketches if s.get('source_type') == 'example'])}</div>
-                                <div class="text-purple-100">📚 Examples</div>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                                <div class="text-3xl font-bold">{server.cache.get_statistics()['total_versions']}</div>
-                                <div class="text-purple-100">Cached Versions</div>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                                <div class="text-3xl font-bold">{server.execution_stats['successful_executions']}</div>
-                                <div class="text-purple-100">Successful Runs</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        # Add display formatting to sketches
+        for sketch in sketches:
+            # Format file size nicely
+            size_kb = sketch["size_bytes"] / 1024
+            sketch["size_display"] = (
+                f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb/1024:.1f} MB"
+            )
+            # Format date nicely
+            sketch["date_display"] = sketch["modified_at"][:19].replace("T", " ")
+            # Add relative path for display
+            try:
+                file_path = Path(sketch["file_path"])
+                sketch["relative_path"] = str(
+                    file_path.relative_to(file_path.parent.parent)
+                )
+            except (ValueError, OSError):
+                sketch["relative_path"] = sketch["name"]
 
-            <!-- Main Content -->
-            <div class="max-w-7xl mx-auto px-6 py-12">
-        """
+        context = {
+            "request": request,
+            "sketches": sketches,
+            "user_sketches": user_sketches,
+            "examples": examples,
+            "user_sketches_count": len(user_sketches),
+            "examples_count": len(examples),
+            "cache_stats": server.cache.get_statistics(),
+            "execution_stats": server.execution_stats,
+        }
 
-        if not sketches:
-            html_content += """
-                    <div class="col-span-full">
-                        <div class="text-center py-20 bg-white rounded-2xl shadow-lg border border-gray-200">
-                            <div class="text-8xl mb-6 animate-pulse-slow">🎨</div>
-                            <h3 class="text-2xl font-bold text-gray-800 mb-4">No sketches found</h3>
-                            <p class="text-gray-600 mb-8 max-w-md mx-auto">
-                                Add Python files to your project directory to see them here.
-                                DrawBot sketches should use the .py extension.
-                            </p>
-                            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 max-w-lg mx-auto">
-                                <h4 class="font-semibold text-gray-800 mb-2">Quick Start:</h4>
-                                <p class="text-sm text-gray-600">
-                                    Create a new sketch file in your sketches directory and it will appear here automatically.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-            """
-        else:
-            # Group sketches by type
-            user_sketches = [s for s in sketches if s.get("source_type") == "sketch"]
-            examples = [s for s in sketches if s.get("source_type") == "example"]
-
-            # User sketches section
-            if user_sketches:
-                html_content += """
-                <div class="mb-12">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2">🎨 Your Sketches</h2>
-                        <p class="text-gray-600">Your creative work and personal projects</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                """
-
-                for sketch in user_sketches:
-                    html_content += server._render_sketch_card(sketch)
-
-                html_content += """
-                    </div>
-                </div>
-                """
-
-            # Examples section
-            if examples:
-                html_content += """
-                <div class="mb-12">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2">📚 Examples & Tutorials</h2>
-                        <p class="text-gray-600">Learn DrawBot and explore creative techniques with these examples</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                """
-
-                for sketch in examples:
-                    html_content += server._render_sketch_card(sketch)
-
-                html_content += """
-                    </div>
-                </div>
-                """
-
-        html_content += """
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <footer class="bg-gradient-to-r from-gray-800 to-gray-900 text-white mt-20">
-                <div class="max-w-7xl mx-auto px-6 py-12">
-                    <div class="text-center">
-                        <div class="text-4xl mb-4">🎨</div>
-                        <h3 class="text-xl font-semibold mb-2">DrawBot Live Preview Studio</h3>
-                        <p class="text-gray-400 mb-6">
-                            Real-time sketch development with instant visual feedback
-                        </p>
-                        <div class="flex justify-center space-x-6 text-sm text-gray-400">
-                            <a href="/metrics" class="hover:text-white transition-colors">📊 Metrics</a>
-                            <span>•</span>
-                            <span>Powered by DrawBot & FastAPI</span>
-                            <span>•</span>
-                            <span>Built with ❤️ for creative coding</span>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-        </body>
-        </html>
-        """
-
-        # Return with no-cache headers
-        return Response(
-            content=html_content,
-            media_type="text/html",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0",
-            },
-        )
+        return templates.TemplateResponse("dashboard.html", context)
 
     @app.get("/sketch/{sketch_name}", response_class=HTMLResponse)
-    async def sketch_preview_page(sketch_name: str):
+    async def sketch_preview_page(request: Request, sketch_name: str):
         """Live preview page for a specific sketch."""
         # Validate sketch exists
         validation = server.security_middleware.validate_sketch_path(sketch_name)
@@ -615,355 +428,19 @@ def create_app(server: LivePreviewServer) -> FastAPI:
         # Get current preview
         current_preview = server.cache.get_current_preview(sketch_name)
 
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>{sketch_name} - Live Preview</title>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <script src="https://cdn.tailwindcss.com"></script>
-            <script>
-                tailwind.config = {{
-                    theme: {{
-                        extend: {{
-                            animation: {{
-                                'pulse-slow': 'pulse 3s infinite',
-                                'bounce-slow': 'bounce 2s infinite',
-                            }}
-                        }}
-                    }}
-                }}
-            </script>
-        </head>
-        <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-            <!-- WebSocket Status -->
-            <div id="ws-status" class="fixed top-4 right-4 px-3 py-1 rounded-full text-xs font-medium z-50 transition-all duration-300">
-                <span class="inline-block w-2 h-2 rounded-full mr-2"></span>
-                <span>Connecting...</span>
-            </div>
-
-            <div class="container mx-auto max-w-6xl p-6">
-                <!-- Header -->
-                <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-8">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-3xl font-bold text-slate-800 flex items-center gap-3">
-                                🎨 <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{sketch_name}</span>
-                            </h1>
-                            <p class="text-slate-600 mt-2">Live preview with automatic refresh</p>
-                        </div>
-                            <button onclick="executeSketch()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2">
-                                <span class="text-lg">⚡</span> Execute Sketch
-                            </button>
-                            <button onclick="forceRefresh()" class="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2">
-                                <span class="text-lg">🔄</span> Refresh
-                            </button>
-                            <a href="/" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 no-underline">
-                                <span class="text-lg">←</span> Back to List
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Status Messages -->
-                <div id="status" class="mb-6"></div>
-
-                <!-- Preview Container -->
-                <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
-                    <div class="mb-4">
-                        <h2 class="text-xl font-semibold text-slate-700 flex items-center justify-center gap-2">
-                            <span class="animate-pulse-slow">🖼️</span> Live Preview
-                        </h2>
-                    </div>
-                    <div id="preview-content" class="flex flex-col items-center gap-4">
-        """
+        # Prepare context for template
+        context = {
+            "request": request,
+            "sketch_name": sketch_name,
+            "current_preview": current_preview,
+        }
 
         if current_preview:
-            image_url = (
-                f"/preview/{current_preview.file_path.name}?v={current_preview.version}"
-            )
-            html_content += f"""
-                        <div class="relative inline-block">
-                            <img src="{image_url}" alt="{sketch_name} preview"
-                                 class="rounded-xl shadow-2xl border-4 border-slate-100 hover:shadow-3xl transition-shadow duration-300"
-                                 id="preview-image">
-                            <div class="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
-                                ✨ Latest
-                            </div>
-                        </div>
-                        <div class="text-sm text-slate-500 mt-4 bg-slate-50 px-4 py-2 rounded-lg">
-                            <span class="font-medium">Last updated:</span> {current_preview.created_at.strftime('%Y-%m-%d %H:%M:%S')}
-                        </div>
-            """
-        else:
-            html_content += """
-                        <div class="text-center py-12">
-                            <div class="text-6xl mb-4 animate-bounce-slow">🎨</div>
-                            <p class="text-slate-500 text-lg mb-6">No preview available yet</p>
-                            <p class="text-slate-400">Click "Execute Sketch" to generate your first preview</p>
-                        </div>
-            """
+            context[
+                "image_url"
+            ] = f"/preview/{current_preview.file_path.name}?v={current_preview.version}"
 
-        html_content += (
-            """
-                    </div>
-                </div>
-            </div>
-
-            <script>
-                let ws = null;
-                let wsConnected = false;
-
-                // WebSocket connection
-                function connectWebSocket() {
-                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                    const wsUrl = `${protocol}//${window.location.host}/live/"""
-            + sketch_name
-            + """`;
-
-                    ws = new WebSocket(wsUrl);
-
-                    ws.onopen = function(event) {
-                        wsConnected = true;
-                        updateWSStatus(true);
-                        updateStatus('🔗 Live preview connected', 'success');
-                        console.log('WebSocket connected');
-                    };
-
-                    ws.onmessage = function(event) {
-                        const data = JSON.parse(event.data);
-                        handleWebSocketMessage(data);
-                    };
-
-                    ws.onclose = function(event) {
-                        wsConnected = false;
-                        updateStatus('🔌 Live preview disconnected', 'error');
-                        console.log('WebSocket disconnected');
-
-                        // Attempt to reconnect after 3 seconds
-                        setTimeout(connectWebSocket, 3000);
-                    };
-
-                    ws.onerror = function(error) {
-                        wsConnected = false;
-                        updateWSStatus(false);
-                        console.error('WebSocket error:', error);
-                        updateStatus('❌ Connection error', 'error');
-                    };
-
-                    ws.onclose = function(event) {
-                        wsConnected = false;
-                        updateWSStatus(false);
-                        console.log('WebSocket disconnected');
-                        updateStatus('🔌 Connection closed', 'error');
-                    };
-                }
-
-                function handleWebSocketMessage(data) {
-                    console.log('WebSocket message:', data);
-
-                    switch(data.type) {
-                        case 'connection_confirmed':
-                            updateStatus('✅ Live preview active', 'success');
-                            break;
-
-                        case 'execution_started':
-                            updateStatus('⚡ Executing sketch...', '');
-                            break;
-
-                        case 'preview_updated':
-                            if (data.status === 'success') {
-                                updateStatus(`✅ Updated! (${data.execution_time?.toFixed(3) || '?'}s)`, 'success');
-                                updatePreviewImage(data.image_url);
-                            }
-                            break;
-
-                        case 'execution_error':
-                            updateStatus(`❌ Error: ${data.error}`, 'error');
-                            showErrorPlaceholder(data.error);
-                            break;
-
-                        case 'no_preview':
-                            updateStatus('ℹ️ No preview available', '');
-                            break;
-                    }
-                }
-
-                function updateStatus(message, type) {
-                    const statusDiv = document.getElementById('status');
-                    let className = 'p-4 rounded-lg border-l-4 shadow-md mb-4';
-                    let icon = '💡';
-
-                    if (type === 'success') {
-                        className += ' bg-green-50 border-green-400 text-green-800';
-                        icon = '✅';
-                    } else if (type === 'error') {
-                        className += ' bg-red-50 border-red-400 text-red-800';
-                        icon = '❌';
-                    } else {
-                        className += ' bg-blue-50 border-blue-400 text-blue-800';
-                        icon = '💡';
-                    }
-
-                    statusDiv.innerHTML = `<div class="${className}">
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg">${icon}</span>
-                            <span class="font-medium">${message}</span>
-                        </div>
-                    </div>`;
-                }
-
-                function updateWSStatus(connected) {
-                    const wsStatus = document.getElementById('ws-status');
-                    const dot = wsStatus.querySelector('span:first-child');
-                    const text = wsStatus.querySelector('span:last-child');
-
-                    if (connected) {
-                        wsStatus.className = 'fixed top-4 right-4 px-3 py-1 rounded-full text-xs font-medium z-50 transition-all duration-300 bg-green-100 text-green-800 border border-green-200';
-                        dot.className = 'inline-block w-2 h-2 rounded-full mr-2 bg-green-500 animate-pulse';
-                        text.textContent = 'Connected';
-                    } else {
-                        wsStatus.className = 'fixed top-4 right-4 px-3 py-1 rounded-full text-xs font-medium z-50 transition-all duration-300 bg-red-100 text-red-800 border border-red-200';
-                        dot.className = 'inline-block w-2 h-2 rounded-full mr-2 bg-red-500';
-                        text.textContent = 'Disconnected';
-                    }
-                }
-
-                function scaleImageForRetina(img) {
-                    // Scale down high-resolution image by 1/3 for retina display
-                    img.onload = function() {
-                        const retinaScale = 3.0;
-                        img.style.width = (this.naturalWidth / retinaScale) + 'px';
-                        img.style.height = (this.naturalHeight / retinaScale) + 'px';
-                    };
-                }
-
-                function updatePreviewImage(imageUrl) {
-                    if (!imageUrl) return;
-
-                    const previewImg = document.getElementById('preview-image');
-                    if (previewImg) {
-                        previewImg.src = imageUrl + '&t=' + Date.now();
-                        scaleImageForRetina(previewImg);
-                    } else {
-                        // Create new image element
-                        const previewContent = document.getElementById('preview-content');
-                        previewContent.innerHTML = `
-                            <img src="${imageUrl}&t=${Date.now()}" alt=\""""
-            + sketch_name
-            + """ preview" class="preview-image" id="preview-image">
-                            <p>Live preview - saves automatically trigger updates</p>
-                        `;
-                        const newImg = document.getElementById('preview-image');
-                        scaleImageForRetina(newImg);
-                    }
-                }
-
-                function showErrorPlaceholder(errorMessage) {
-                    const previewContent = document.getElementById('preview-content');
-                    const errorDetails = errorMessage.split('\n');
-                    const errorType = errorDetails[0].includes(':') ? errorDetails[0].split(':')[0] : 'Error';
-                    const errorDescription = errorDetails[0].includes(':') ? errorDetails[0].split(':').slice(1).join(':').trim() : errorMessage;
-
-                    previewContent.innerHTML = `
-                        <div class="error-placeholder bg-red-50 border-2 border-red-200 rounded-xl p-8 text-center">
-                            <div class="text-6xl mb-4 opacity-60">🚫</div>
-                            <h3 class="text-xl font-bold text-red-800 mb-3">Sketch Execution Failed</h3>
-                            <div class="bg-white rounded-lg p-4 mb-4 border border-red-200">
-                                <div class="text-sm font-mono text-red-700 mb-2">
-                                    <span class="font-bold">${errorType}:</span> ${errorDescription}
-                                </div>
-                                ${errorDetails.length > 1 ? `
-                                    <details class="text-xs text-red-600 mt-2">
-                                        <summary class="cursor-pointer hover:text-red-800">Show full error details</summary>
-                                        <pre class="mt-2 text-left whitespace-pre-wrap">${errorDetails.slice(1).join('\n')}</pre>
-                                    </details>
-                                ` : ''}
-                            </div>
-                            <div class="space-y-2 text-sm text-red-700">
-                                <p class="font-medium">Common fixes:</p>
-                                <ul class="text-left space-y-1 max-w-md mx-auto">
-                                    <li>• Check for syntax errors (missing quotes, parentheses, indentation)</li>
-                                    <li>• Verify DrawBot import: <code class="bg-red-100 px-1 rounded">import drawBot as drawbot</code></li>
-                                    <li>• Ensure consistent variable naming throughout the script</li>
-                                    <li>• Check that all functions are called correctly</li>
-                                </ul>
-                            </div>
-                            <div class="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <p class="text-sm text-yellow-800">
-                                    💡 <strong>Tip:</strong> Fix the Python errors in your sketch file, then press "Execute Sketch" to retry.
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                async function executeSketch() {
-                    try {
-                        const response = await fetch(`/execute/"""
-            + sketch_name
-            + """`, {
-                            method: 'POST'
-                        });
-
-                        const result = await response.json();
-
-                        if (result.status === 'success') {
-                            updateStatus(`✅ Manual execution: ${result.execution_time.toFixed(3)}s`, 'success');
-                            if (result.preview_url) {
-                                updatePreviewImage(result.preview_url);
-                            }
-                        } else {
-                            updateStatus(`❌ Error: ${result.error}`, 'error');
-                            showErrorPlaceholder(result.error);
-                        }
-                    } catch (error) {
-                        updateStatus(`❌ Network error: ${error.message}`, 'error');
-                    }
-                }
-
-                function forceRefresh() {
-                    if (ws && wsConnected) {
-                        ws.send(JSON.stringify({type: 'force_refresh'}));
-                    } else {
-                        updateStatus('❌ WebSocket not connected', 'error');
-                    }
-                }
-
-                // Initialize WebSocket connection
-                connectWebSocket();
-
-                // Send ping every 30 seconds to keep connection alive
-                setInterval(() => {
-                    if (ws && wsConnected) {
-                        ws.send(JSON.stringify({type: 'ping'}));
-                    }
-                }, 30000);
-
-                // Scale initial image on page load
-                document.addEventListener('DOMContentLoaded', function() {
-                    const initialImg = document.getElementById('preview-image');
-                    if (initialImg) {
-                        scaleImageForRetina(initialImg);
-                    }
-                });
-            </script>
-        </body>
-        </html>
-        """
-        )
-
-        # Return with no-cache headers
-        return Response(
-            content=html_content,
-            media_type="text/html",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0",
-            },
-        )
+        return templates.TemplateResponse("sketch_preview.html", context)
 
     @app.post("/execute/{sketch_name}")
     async def execute_sketch(sketch_name: str):
@@ -993,6 +470,26 @@ def create_app(server: LivePreviewServer) -> FastAPI:
     async def get_sketch_status(sketch_name: str):
         """Get status of a specific sketch."""
         return server.get_sketch_status(sketch_name)
+
+    @app.get("/code/{sketch_name}")
+    async def get_sketch_code(sketch_name: str):
+        """Get the source code of a sketch."""
+        # Validate sketch exists
+        validation = server.security_middleware.validate_sketch_path(sketch_name)
+        if not validation.valid:
+            raise HTTPException(
+                status_code=404, detail=f"Sketch not found: {sketch_name}"
+            )
+
+        try:
+            # Read the sketch file
+            async with aiofiles.open(validation.resolved_path, "r") as f:
+                code = await f.read()
+            return Response(content=code, media_type="text/plain")
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to read sketch: {str(e)}"
+            )
 
     @app.get("/preview/{filename}")
     async def serve_preview_image(filename: str, request: Request):

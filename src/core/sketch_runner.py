@@ -112,6 +112,8 @@ class SketchRunner:
         env = os.environ.copy()
 
         # Create execution script that changes directory and runs the sketch
+        # Ensure absolute paths
+        sketch_path = sketch_path.resolve()
         sketch_dir = sketch_path.parent
         execution_script = f"""
 import os

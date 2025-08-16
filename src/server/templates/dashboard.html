@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}DrawBot Live Preview Studio{% endblock %}
+
+{% block extra_css %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+        <div class="text-center">
+            <h1 class="text-5xl font-bold mb-4 animate-float">
+                🎨 DrawBot Live Preview Studio
+            </h1>
+            <p class="text-xl text-purple-100 mb-8">
+                Real-time sketch development with instant visual feedback
+            </p>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                <div class="stats-card">
+                    <div class="text-3xl font-bold">{{ user_sketches_count }}</div>
+                    <div class="text-purple-100">🎨 Your Sketches</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-3xl font-bold">{{ examples_count }}</div>
+                    <div class="text-purple-100">📚 Examples</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-3xl font-bold">{{ cache_stats.total_versions }}</div>
+                    <div class="text-purple-100">Cached Versions</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-3xl font-bold">{{ execution_stats.successful_executions }}</div>
+                    <div class="text-purple-100">Successful Runs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="max-w-7xl mx-auto px-6 py-12">
+    {% if not sketches %}
+        <div class="col-span-full">
+            <div class="text-center py-20 bg-white rounded-2xl shadow-lg border border-gray-200">
+                <div class="text-8xl mb-6 animate-pulse-slow">🎨</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">No sketches found</h3>
+                <p class="text-gray-600 mb-8 max-w-md mx-auto">
+                    Add Python files to your project directory to see them here.
+                    DrawBot sketches should use the .py extension.
+                </p>
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 max-w-lg mx-auto">
+                    <h4 class="font-semibold text-gray-800 mb-2">Quick Start:</h4>
+                    <p class="text-sm text-gray-600">
+                        Create a new sketch file in your sketches directory and it will appear here automatically.
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- User sketches section -->
+        {% if user_sketches %}
+        <div class="mb-12">
+            <div class="mb-8">
+                <h2 class="section-title">🎨 Your Sketches</h2>
+                <p class="text-gray-600">Your creative work and personal projects</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for sketch in user_sketches %}
+                    {% include "sketch_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Examples section -->
+        {% if examples %}
+        <div class="mb-12">
+            <div class="mb-8">
+                <h2 class="section-title">📚 Examples & Tutorials</h2>
+                <p class="text-gray-600">Learn DrawBot and explore creative techniques with these examples</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for sketch in examples %}
+                    {% include "sketch_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Footer -->
+<footer class="bg-gradient-to-r from-gray-800 to-gray-900 text-white mt-20">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+        <div class="text-center">
+            <div class="text-2xl font-bold mb-4">🎨 DrawBot Live Preview Studio</div>
+            <p class="text-gray-300 mb-6">Bringing your creative code to life</p>
+            <div class="text-sm text-gray-400">
+                Powered by DrawBot • FastAPI • WebSocket • Real-time Updates
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

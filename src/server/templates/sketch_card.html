@@ -1,0 +1,64 @@
+<!-- Sketch Card Component -->
+<div class="preview-card bg-gradient-to-br {{ 'from-green-50 to-emerald-50' if sketch.has_preview else 'from-blue-50 to-indigo-50' }}">
+    <div class="preview-card-content">
+        <!-- Header with badges -->
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center">
+                {% if sketch.has_preview %}
+                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                    Preview Ready
+                </div>
+                {% else %}
+                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    <span class="w-2 h-2 bg-gray-400 rounded-full mr-1"></span>
+                    No Preview
+                </div>
+                {% endif %}
+
+                {% if sketch.source_type == 'example' %}
+                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">
+                    📚 Example
+                </div>
+                {% else %}
+                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                    🎨 Sketch
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h3 class="preview-card-title">{{ sketch.display_name or sketch.name }}</h3>
+
+        <!-- Meta information -->
+        <div class="preview-card-meta">
+            <div class="flex items-center text-xs text-gray-500 mb-2">
+                <span>📁 {{ sketch.relative_path }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>📊 {{ sketch.size_display }}</span>
+                <span>📅 {{ sketch.date_display }}</span>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="space-y-3">
+            <a href="/sketch/{{ sketch.name }}"
+               class="block w-full text-center btn-primary">
+                🎨 Open Live Preview
+            </a>
+
+            <div class="flex space-x-2">
+                <button onclick="executeSketch('{{ sketch.name }}')"
+                        class="flex-1 btn-secondary text-sm">
+                    ▶️ Execute
+                </button>
+                <button onclick="viewCode('{{ sketch.name }}')"
+                        class="flex-1 btn-secondary text-sm">
+                    📝 View Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

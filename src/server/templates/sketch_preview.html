@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}{{ sketch_name }} - Live Preview{% endblock %}
+
+{% block extra_css %}
+<!-- Additional styles for sketch preview -->
+<style>
+.preview-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 4px solid #f1f5f9;
+    transition: box-shadow 0.3s ease;
+}
+
+.preview-image:hover {
+    box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.35);
+}
+
+.ws-status {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+    transition: all 0.3s ease;
+}
+
+.ws-status.connected {
+    @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.ws-status.disconnected {
+    @apply bg-red-100 text-red-800 border border-red-200;
+}
+
+.ws-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.ws-status.connected .ws-status-dot {
+    background-color: #10b981;
+    animation: pulse 2s infinite;
+}
+
+.ws-status.disconnected .ws-status-dot {
+    background-color: #ef4444;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- WebSocket Status -->
+<div id="ws-status" class="ws-status px-3 py-1 rounded-full text-xs font-medium">
+    <span class="ws-status-dot"></span>
+    <span id="ws-status-text">Connecting...</span>
+</div>
+
+<div class="container mx-auto max-w-6xl p-6">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800 flex items-center gap-3">
+                    🎨 <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{{ sketch_name }}</span>
+                </h1>
+                <p class="text-slate-600 mt-2">Live preview with automatic refresh</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="executeSketch()" class="btn-primary flex items-center gap-2">
+                    <span class="text-lg">⚡</span> Execute Sketch
+                </button>
+                <button onclick="forceRefresh()" class="btn-secondary flex items-center gap-2">
+                    <span class="text-lg">🔄</span> Refresh
+                </button>
+                <a href="/" class="btn-primary flex items-center gap-2 no-underline">
+                    <span class="text-lg">←</span> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="status" class="mb-6"></div>
+
+    <!-- Preview Container -->
+    <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-slate-700 flex items-center justify-center gap-2">
+                <span class="animate-pulse-slow">🖼️</span> Live Preview
+            </h2>
+        </div>
+        <div id="preview-content" class="flex flex-col items-center gap-4">
+            {% if current_preview %}
+                <div class="relative inline-block">
+                    <img src="{{ image_url }}" alt="{{ sketch_name }} preview"
+                         class="preview-image"
+                         id="preview-image">
+                    <div class="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                        ✨ Latest
+                    </div>
+                </div>
+                <div class="text-sm text-slate-500 mt-4 bg-slate-50 px-4 py-2 rounded-lg">
+                    <span class="font-medium">Last updated:</span> {{ current_preview.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4 animate-bounce-slow">🎨</div>
+                    <p class="text-slate-500 text-lg mb-6">No preview available yet</p>
+                    <p class="text-slate-400">Click "Execute Sketch" to generate your first preview</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/sketch-preview.js"></script>
+<script>
+    // Set current sketch name for JavaScript
+    window.currentSketchName = '{{ sketch_name }}';
+
+    // Initialize sketch preview
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeSketchPreview('{{ sketch_name }}');
+    });
+</script>
+{% endblock %}
