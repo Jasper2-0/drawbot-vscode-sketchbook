@@ -1,9 +1,10 @@
 # ColumnGrid with Multiplication Example
 # Demonstrates using column width multipliers for spanning multiple columns
 
+import os
+
 import drawBot as db
 from drawBotGrid import ColumnGrid
-import os
 
 # Set up A4 landscape page size (842 x 595)
 db.size(842, 595)
@@ -48,7 +49,10 @@ db.fill(0)  # Black text
 db.fontSize(14)
 db.text("ColumnGrid Multiplication", (50, 550))
 db.fontSize(10)
-db.text("Red: 1 column | Blue: 3-4 columns | Green: 2 columns | Orange: 8 columns (full width)", (50, 530))
+db.text(
+    "Red: 1 column | Blue: 3-4 columns | Green: 2 columns | Orange: 8 columns (full width)",
+    (50, 530),
+)
 
 # Draw grid guidelines to visualize the structure
 db.stroke(0, 0, 0, 0.2)  # Light gray
@@ -58,7 +62,7 @@ db.fill(None)  # No fill for guidelines
 for i in range(8):
     x = columns[i]
     db.line((x, 50), (x, 500))
-    
+
     # Add column numbers
     db.fill(0, 0, 0, 0.7)
     db.fontSize(8)

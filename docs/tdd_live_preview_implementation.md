@@ -1,8 +1,8 @@
 # TDD Implementation Plan: Live Preview Web Server
 
-**Project**: DrawBot VSCode Sketchbook - Live Preview Feature  
-**Approach**: Web server + WebSocket real-time updates  
-**Timeline**: 4 phases, incremental delivery  
+**Project**: DrawBot VSCode Sketchbook - Live Preview Feature
+**Approach**: Web server + WebSocket real-time updates
+**Timeline**: 4 phases, incremental delivery
 **Test Strategy**: TDD with comprehensive unit and integration tests
 
 ---
@@ -24,19 +24,19 @@ Build the foundational preview execution system that can generate static preview
 class TestPreviewEngine:
     def test_execute_simple_sketch_success(self):
         # Test basic sketch execution and preview generation
-        
+
     def test_execute_sketch_with_syntax_error(self):
         # Test error handling for broken sketches
-        
+
     def test_execute_sketch_timeout_protection(self):
         # Test timeout mechanism for infinite loops
-        
+
     def test_concurrent_execution_cancellation(self):
         # Test that new executions cancel previous ones
-        
+
     def test_resource_cleanup_after_execution(self):
         # Test memory and file cleanup
-        
+
     def test_virtual_environment_detection(self):
         # Test proper Python executable selection
 ```
@@ -46,16 +46,16 @@ class TestPreviewEngine:
 class TestPreviewCache:
     def test_store_and_retrieve_preview(self):
         # Test basic preview storage and retrieval
-        
+
     def test_version_management(self):
         # Test versioned preview storage
-        
+
     def test_automatic_cleanup_old_previews(self):
         # Test LRU eviction and age-based cleanup
-        
+
     def test_disk_space_limit_enforcement(self):
         # Test maximum cache size limits
-        
+
     def test_concurrent_access_safety(self):
         # Test thread-safe cache operations
 ```
@@ -65,23 +65,23 @@ class TestPreviewCache:
 class TestImageConverter:
     def test_convert_pdf_to_png(self):
         # Test basic PDF to PNG conversion
-        
+
     def test_handle_invalid_pdf_data(self):
         # Test graceful handling of corrupted PDFs
-        
+
     def test_conversion_with_different_sizes(self):
         # Test handling various canvas sizes
-        
+
     def test_conversion_performance_benchmarks(self):
         # Test conversion speed meets requirements (<100ms)
-        
+
     def test_memory_usage_during_conversion(self):
         # Test memory efficiency
 ```
 
 ### Success Criteria
 - ✅ Can execute sketch and generate PNG preview
-- ✅ Proper error handling for all sketch execution failures  
+- ✅ Proper error handling for all sketch execution failures
 - ✅ Resource cleanup prevents memory leaks
 - ✅ Preview cache manages disk usage efficiently
 - ✅ All tests pass with >90% code coverage
@@ -92,7 +92,7 @@ class TestImageConverter:
 def test_phase_1_integration():
     engine = PreviewEngine()
     cache = PreviewCache()
-    
+
     # Execute sketch and get preview
     result = engine.execute_sketch("test_sketch.py", cache)
     assert result.success
@@ -119,19 +119,19 @@ Build FastAPI web server with static preview serving and basic health endpoints.
 class TestLivePreviewServer:
     def test_health_endpoint_response(self):
         # Test /health endpoint returns server status
-        
+
     def test_serve_preview_image(self):
         # Test GET /preview/{sketch_name}.png
-        
+
     def test_sketch_status_endpoint(self):
         # Test GET /status/{sketch_name}
-        
+
     def test_sketch_list_endpoint(self):
         # Test GET / returns available sketches
-        
+
     def test_404_for_invalid_sketch(self):
         # Test proper 404 handling
-        
+
     def test_cache_headers_on_images(self):
         # Test ETag and cache headers
 ```
@@ -141,13 +141,13 @@ class TestLivePreviewServer:
 class TestSecurityMiddleware:
     def test_path_traversal_prevention(self):
         # Test blocking ../../../etc/passwd type attacks
-        
+
     def test_allowed_sketch_directory_enforcement(self):
         # Test only approved directories accessible
-        
+
     def test_localhost_binding_only(self):
         # Test server only binds to 127.0.0.1
-        
+
     def test_request_rate_limiting(self):
         # Test basic DoS protection
 ```
@@ -157,13 +157,13 @@ class TestSecurityMiddleware:
 class TestServerManager:
     def test_find_available_port(self):
         # Test automatic port detection
-        
+
     def test_existing_server_detection(self):
         # Test detection of running servers
-        
+
     def test_graceful_shutdown(self):
         # Test cleanup on SIGTERM/SIGINT
-        
+
     def test_pid_file_management(self):
         # Test PID file creation and cleanup
 ```
@@ -182,7 +182,7 @@ async def test_phase_2_integration():
     async with TestClient(app) as client:
         # Generate a preview
         engine.execute_sketch("test_sketch.py")
-        
+
         # Serve via web server
         response = await client.get("/preview/test_sketch.png")
         assert response.status_code == 200
@@ -208,16 +208,16 @@ Add real-time preview updates using WebSockets and file watching.
 class TestLivePreviewManager:
     def test_websocket_connection_lifecycle(self):
         # Test connect, subscribe, disconnect flow
-        
+
     def test_multiple_clients_same_sketch(self):
         # Test multiple browsers watching same sketch
-        
+
     def test_client_room_management(self):
         # Test sketch-specific client grouping
-        
+
     def test_connection_cleanup_on_disconnect(self):
         # Test resource cleanup when clients disconnect
-        
+
     def test_broadcast_to_specific_sketch_clients(self):
         # Test targeted message broadcasting
 ```
@@ -227,16 +227,16 @@ class TestLivePreviewManager:
 class TestFileWatchIntegration:
     def test_file_change_triggers_preview_update(self):
         # Test file change → execution → broadcast flow
-        
+
     def test_debounced_rapid_file_changes(self):
         # Test rapid saves only trigger one update
-        
+
     def test_execution_error_handling_during_watch(self):
         # Test WebSocket error broadcasts
-        
+
     def test_watch_start_stop_with_clients(self):
         # Test FileWatcher lifecycle management
-        
+
     def test_multiple_sketch_watching(self):
         # Test watching multiple sketches simultaneously
 ```
@@ -246,13 +246,13 @@ class TestFileWatchIntegration:
 class TestWebSocketBroadcaster:
     def test_broadcast_preview_update_message(self):
         # Test preview update WebSocket messages
-        
+
     def test_broadcast_execution_error_message(self):
         # Test error state WebSocket messages
-        
+
     def test_connection_resilience(self):
         # Test handling of dropped connections
-        
+
     def test_message_serialization(self):
         # Test JSON message format consistency
 ```
@@ -270,12 +270,12 @@ class TestWebSocketBroadcaster:
 async def test_phase_3_integration():
     # Start live preview for sketch
     manager = LivePreviewManager()
-    
+
     # Connect WebSocket client
     async with websockets.connect("ws://localhost:8080/live/test_sketch") as ws:
         # Modify sketch file
         sketch_file.write_text('updated sketch content')
-        
+
         # Should receive update message
         message = await asyncio.wait_for(ws.recv(), timeout=2.0)
         data = json.loads(message)
@@ -303,19 +303,19 @@ Complete CLI interface and production-ready features.
 class TestLiveCommand:
     def test_auto_detect_sketch_in_current_directory(self):
         # Test automatic sketch detection
-        
+
     def test_explicit_sketch_specification(self):
         # Test `sketchbook live sketch_name.py`
-        
+
     def test_port_specification_option(self):
         # Test --port flag
-        
+
     def test_no_browser_option(self):
         # Test --no-browser flag
-        
+
     def test_existing_server_detection_and_options(self):
         # Test connecting to existing vs new server
-        
+
     def test_command_line_help_and_documentation(self):
         # Test help text and usage examples
 ```
@@ -325,16 +325,16 @@ class TestLiveCommand:
 class TestEnvironmentDiagnostics:
     def test_detect_missing_drawbot_installation(self):
         # Test DrawBot installation validation
-        
+
     def test_detect_virtual_environment_issues(self):
         # Test venv detection and guidance
-        
+
     def test_detect_missing_dependencies(self):
         # Test FastAPI/PIL dependency validation
-        
+
     def test_provide_setup_guidance(self):
         # Test user-friendly setup instructions
-        
+
     def test_validate_sketch_file_accessibility(self):
         # Test sketch file permissions and syntax
 ```
@@ -344,13 +344,13 @@ class TestEnvironmentDiagnostics:
 class TestBrowserLauncher:
     def test_launch_default_browser_cross_platform(self):
         # Test browser opening on Mac/Windows/Linux
-        
+
     def test_handle_browser_launch_failure(self):
         # Test graceful fallback when browser fails
-        
+
     def test_custom_browser_specification(self):
         # Test --browser flag for specific browser
-        
+
     def test_generate_proper_preview_urls(self):
         # Test URL generation with correct ports/paths
 ```
@@ -369,12 +369,12 @@ class TestBrowserLauncher:
 def test_complete_live_preview_workflow():
     # Start from sketch directory
     os.chdir("sketches/test_sketch")
-    
+
     # Run live command
     result = subprocess.run(["sketchbook", "live"], capture_output=True)
     assert result.returncode == 0
     assert "Preview server: http://localhost" in result.stdout
-    
+
     # Verify server is running and accessible
     response = requests.get("http://localhost:8080/sketch/test_sketch")
     assert response.status_code == 200
@@ -390,7 +390,7 @@ def test_complete_live_preview_workflow():
 - **Focus**: Individual component functionality and error handling
 - **Tools**: pytest, pytest-asyncio, pytest-cov
 
-### Integration Tests  
+### Integration Tests
 - **Target**: End-to-end workflow validation
 - **Focus**: Component interaction and data flow
 - **Tools**: TestClient for FastAPI, temporary directories, mock sketches

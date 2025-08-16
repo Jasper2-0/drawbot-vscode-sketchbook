@@ -1,10 +1,11 @@
 # Folder-based Generative Pattern with Data Files
 # Demonstrates reading configuration from data folder
 
-import drawBot as db
-import random
 import json
+import random
 from pathlib import Path
+
+import drawBot as db
 
 # Load configuration from data folder
 sketch_dir = Path(__file__).parent

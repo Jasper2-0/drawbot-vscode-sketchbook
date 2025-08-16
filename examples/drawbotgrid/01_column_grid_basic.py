@@ -1,9 +1,10 @@
 # ColumnGrid Basic Usage Example
 # Demonstrates basic column grid functionality from drawbotgrid
 
+import os
+
 import drawBot as db
 from drawBotGrid import ColumnGrid
-import os
 
 # Set up A4 landscape page size (842 x 595)
 db.size(842, 595)
@@ -47,7 +48,7 @@ db.fill(None)  # No fill for guidelines
 for i in range(8):
     x = columns[i]
     db.line((x, 0), (x, db.height()))
-    
+
     # Add column numbers
     db.fill(0, 0, 0, 0.7)
     db.fontSize(8)

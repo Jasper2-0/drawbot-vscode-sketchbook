@@ -2,26 +2,27 @@
 Tests for sketch runner with folder-based sketches.
 """
 import tempfile
-from pathlib import Path
-import pytest
 import time
+from pathlib import Path
+
+import pytest
 
 
 class TestSketchRunnerFolders:
     """Test suite for sketch runner folder functionality."""
-    
+
     def test_runs_sketch_from_folder(self):
         """Test running a <folder_name>.py file from a sketch folder."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            sketches_dir = project_path / 'sketches'
+            sketches_dir = project_path / "sketches"
             sketches_dir.mkdir()
-            
+
             # Create sketch folder structure
-            sketch_folder = sketches_dir / 'my_sketch'
+            sketch_folder = sketches_dir / "my_sketch"
             sketch_folder.mkdir()
-            sketch_file = sketch_folder / 'my_sketch.py'
-            
+            sketch_file = sketch_folder / "my_sketch.py"
+
             sketch_content = """
 print("Running from folder")
 result = 3 * 4
@@ -30,41 +31,41 @@ with open('output.txt', 'w') as f:
     f.write(f"Result from folder: {result}")
 """
             sketch_file.write_text(sketch_content)
-            
+
             from src.core.sketch_runner import SketchRunner
-            
+
             runner = SketchRunner(project_path)
             result = runner.run_sketch(sketch_file)
-            
+
             assert result.success is True
             assert result.error is None
             assert "Running from folder" in result.stdout
             assert "Calculation: 12" in result.stdout
-            
+
             # Check output was created in project directory
-            output_file = project_path / 'output.txt'
+            output_file = project_path / "output.txt"
             assert output_file.exists()
             assert "Result from folder: 12" in output_file.read_text()
-    
+
     def test_runs_sketch_with_data_folder(self):
         """Test running a sketch that uses files from a data folder."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            sketches_dir = project_path / 'sketches'
+            sketches_dir = project_path / "sketches"
             sketches_dir.mkdir()
-            
+
             # Create sketch folder with data
-            sketch_folder = sketches_dir / 'data_sketch'
+            sketch_folder = sketches_dir / "data_sketch"
             sketch_folder.mkdir()
-            data_folder = sketch_folder / 'data'
+            data_folder = sketch_folder / "data"
             data_folder.mkdir()
-            
+
             # Create data file
-            config_file = data_folder / 'config.txt'
-            config_file.write_text('color=red,size=100')
-            
+            config_file = data_folder / "config.txt"
+            config_file.write_text("color=red,size=100")
+
             # Create sketch that reads data
-            sketch_file = sketch_folder / 'data_sketch.py'
+            sketch_file = sketch_folder / "data_sketch.py"
             sketch_content = """
 import os
 from pathlib import Path
@@ -76,7 +77,7 @@ data_file = sketch_dir / 'data' / 'config.txt'
 if data_file.exists():
     config = data_file.read_text()
     print(f"Loaded config: {config}")
-    
+
     # Process config
     parts = config.split(',')
     for part in parts:
@@ -84,100 +85,106 @@ if data_file.exists():
         print(f"Setting {key} to {value}")
 else:
     print("Data file not found")
-    
+
 with open('result.txt', 'w') as f:
     f.write('Sketch completed with data')
 """
             sketch_file.write_text(sketch_content)
-            
+
             from src.core.sketch_runner import SketchRunner
-            
+
             runner = SketchRunner(project_path)
             result = runner.run_sketch(sketch_file)
-            
+
             assert result.success is True
             assert "Loaded config: color=red,size=100" in result.stdout
             assert "Setting color to red" in result.stdout
             assert "Setting size to 100" in result.stdout
-            
+
             # Check output
-            output_file = project_path / 'result.txt'
+            output_file = project_path / "result.txt"
             assert output_file.exists()
             assert "Sketch completed with data" in output_file.read_text()
-    
+
     def test_validates_folder_based_sketch(self):
         """Test syntax validation for <folder_name>.py in folders."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            sketches_dir = project_path / 'sketches'
+            sketches_dir = project_path / "sketches"
             sketches_dir.mkdir()
-            
+
             # Valid sketch in folder
-            valid_folder = sketches_dir / 'valid_sketch'
+            valid_folder = sketches_dir / "valid_sketch"
             valid_folder.mkdir()
-            valid_sketch = valid_folder / 'valid_sketch.py'
-            valid_sketch.write_text("""
+            valid_sketch = valid_folder / "valid_sketch.py"
+            valid_sketch.write_text(
+                """
 print("Valid sketch")
 x = 42
 y = x * 2
-""")
-            
+"""
+            )
+
             from src.core.sketch_runner import SketchRunner
-            
+
             runner = SketchRunner(project_path)
             result = runner.validate_sketch_before_run(valid_sketch)
-            
+
             assert result.success is True
             assert result.error is None
-    
+
     def test_handles_sketch_folder_errors(self):
         """Test error handling for sketch folders."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            sketches_dir = project_path / 'sketches'
+            sketches_dir = project_path / "sketches"
             sketches_dir.mkdir()
-            
+
             # Invalid sketch in folder
-            invalid_folder = sketches_dir / 'invalid_sketch'
+            invalid_folder = sketches_dir / "invalid_sketch"
             invalid_folder.mkdir()
-            invalid_sketch = invalid_folder / 'invalid_sketch.py'
-            invalid_sketch.write_text("""
+            invalid_sketch = invalid_folder / "invalid_sketch.py"
+            invalid_sketch.write_text(
+                """
 print("Invalid sketch")
 undefined_var.method()  # NameError
-""")
-            
+"""
+            )
+
             from src.core.sketch_runner import SketchRunner
-            
+
             runner = SketchRunner(project_path)
             result = runner.run_sketch(invalid_sketch)
-            
+
             assert result.success is False
             assert result.error is not None
             assert "NameError" in result.error
-    
+
     def test_sketch_folder_with_additional_modules(self):
         """Test sketch folder with additional Python modules."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            sketches_dir = project_path / 'sketches'
+            sketches_dir = project_path / "sketches"
             sketches_dir.mkdir()
-            
+
             # Create sketch folder
-            sketch_folder = sketches_dir / 'modular_sketch'
+            sketch_folder = sketches_dir / "modular_sketch"
             sketch_folder.mkdir()
-            
+
             # Create helper module
-            helper_file = sketch_folder / 'helper.py'
-            helper_file.write_text("""
+            helper_file = sketch_folder / "helper.py"
+            helper_file.write_text(
+                """
 def calculate(x, y):
     return x * y + 10
 
 def format_result(result):
     return f"Final result: {result}"
-""")
-            
+"""
+            )
+
             # Create main sketch that uses helper
-            sketch_file = sketch_folder / 'helper_sketch.py'
+            sketch_file = sketch_folder / "helper_sketch.py"
             sketch_content = """
 import sys
 from pathlib import Path
@@ -197,33 +204,33 @@ with open('modular_output.txt', 'w') as f:
     f.write(formatted)
 """
             sketch_file.write_text(sketch_content)
-            
+
             from src.core.sketch_runner import SketchRunner
-            
+
             runner = SketchRunner(project_path)
             result = runner.run_sketch(sketch_file)
-            
+
             assert result.success is True
             assert "Starting modular sketch" in result.stdout
             assert "Final result: 40" in result.stdout  # 5*6+10 = 40
-            
+
             # Check output
-            output_file = project_path / 'modular_output.txt'
+            output_file = project_path / "modular_output.txt"
             assert output_file.exists()
             assert "Final result: 40" in output_file.read_text()
-    
+
     def test_sketch_folder_working_directory(self):
         """Test that sketch runs with project as working directory, not sketch folder."""
         with tempfile.TemporaryDirectory() as temp_dir:
             project_path = Path(temp_dir)
-            sketches_dir = project_path / 'sketches'
+            sketches_dir = project_path / "sketches"
             sketches_dir.mkdir()
-            
+
             # Create sketch folder
-            sketch_folder = sketches_dir / 'wd_test'
+            sketch_folder = sketches_dir / "wd_test"
             sketch_folder.mkdir()
-            
-            sketch_file = sketch_folder / 'complex_sketch.py'
+
+            sketch_file = sketch_folder / "complex_sketch.py"
             sketch_content = """
 import os
 from pathlib import Path
@@ -242,19 +249,21 @@ with open('wd_test_output.txt', 'w') as f:
     f.write(f"\\nSketch dir: {sketch_dir}")
 """
             sketch_file.write_text(sketch_content)
-            
+
             from src.core.sketch_runner import SketchRunner
-            
+
             runner = SketchRunner(project_path)
             result = runner.run_sketch(sketch_file)
-            
+
             assert result.success is True
-            
+
             # Check that output was created in project directory, not sketch folder
-            output_file = project_path / 'wd_test_output.txt'
+            output_file = project_path / "wd_test_output.txt"
             assert output_file.exists()
-            
+
             # Verify working directory was project root
             content = output_file.read_text()
             assert str(project_path) in content
-            assert str(sketch_folder) in content  # Sketch dir should be different from CWD
+            assert (
+                str(sketch_folder) in content
+            )  # Sketch dir should be different from CWD

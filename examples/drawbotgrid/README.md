@@ -87,7 +87,7 @@ All examples generate PNG output files in the `output/` directory.
 ## Learning Path
 
 1. Start with **01_column_grid_basic** to understand basic grid concepts
-2. Explore **02_column_grid_multiplication** for flexible width calculations  
+2. Explore **02_column_grid_multiplication** for flexible width calculations
 3. Learn row-based layouts with **03_row_grid**
 4. Combine concepts in **04_grid_combined**
 5. Add typography with **05_baseline_grid**

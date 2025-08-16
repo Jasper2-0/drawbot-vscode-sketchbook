@@ -1,8 +1,9 @@
 # Typography Art Template
 # Demonstrates text manipulation and creative typography
 
-import drawBot as db
 import math
+
+import drawBot as db
 
 # Set canvas size
 db.size(600, 800)

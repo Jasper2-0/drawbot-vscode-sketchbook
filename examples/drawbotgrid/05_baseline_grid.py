@@ -1,9 +1,10 @@
 # BaselineGrid Example
 # Demonstrates baseline grid functionality for text layout
 
+import os
+
 import drawBot as db
 from drawBotGrid import BaselineGrid, ColumnGrid, baselineGridTextBox
-import os
 
 # Set up A4 landscape page size (842 x 595)
 db.size(842, 595)
@@ -39,24 +40,28 @@ db.fill(0.2, 0.2, 0.2)  # Dark gray text
 baselineGridTextBox(
     sample_text,
     (columns[0], columns.bottom, columns * 1, columns.height * 0.8),  # First column
-    baselines
+    baselines,
 )
 
 # Different font size in second column
 db.fontSize(12)
 baselineGridTextBox(
-    "This text uses a different font size but still snaps to the same baseline grid. " + sample_text[:200] + "...",
+    "This text uses a different font size but still snaps to the same baseline grid. "
+    + sample_text[:200]
+    + "...",
     (columns[1], columns.bottom, columns * 1, columns.height * 0.8),  # Second column
-    baselines
+    baselines,
 )
 
 # Larger font size in third column
 db.fontSize(14)
 db.fill(0, 0, 0.6)  # Blue text
 baselineGridTextBox(
-    "Large heading text that also aligns to baseline grid.\n\n" + sample_text[:150] + "...",
+    "Large heading text that also aligns to baseline grid.\n\n"
+    + sample_text[:150]
+    + "...",
     (columns[2], columns.bottom, columns * 1, columns.height * 0.8),  # Third column
-    baselines
+    baselines,
 )
 
 # Add labels for clarity
@@ -64,7 +69,9 @@ db.fill(0)  # Black text
 db.fontSize(16)
 db.text("BaselineGrid Text Layout", (50, 570))
 db.fontSize(10)
-db.text("Text in different sizes automatically snapping to 12pt baseline grid", (50, 550))
+db.text(
+    "Text in different sizes automatically snapping to 12pt baseline grid", (50, 550)
+)
 
 # Draw baseline grid lines to visualize the structure
 db.stroke(1, 0, 0, 0.3)  # Light red lines
@@ -84,7 +91,7 @@ db.strokeWidth(1)
 for i in range(3):
     x = columns[i]
     db.line((x, 50), (x, 545))
-    
+
     # Add column labels
     db.fill(0, 0, 0, 0.6)
     db.fontSize(8)

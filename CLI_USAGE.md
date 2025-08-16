@@ -62,7 +62,7 @@ List all sketches in the current project.
 
 Opens a beautiful web interface at `http://localhost:8083` featuring:
 - Real-time sketch execution and preview
-- Visual gallery of your sketches and examples  
+- Visual gallery of your sketches and examples
 - Error debugging with helpful placeholders
 - WebSocket live updates
 - Multi-format support (PNG, GIF, JPEG, PDF)

@@ -1,9 +1,10 @@
 # RowGrid Example
 # Demonstrates row-based grid functionality from drawbotgrid
 
+import os
+
 import drawBot as db
 from drawBotGrid import RowGrid
-import os
 
 # Set up A4 landscape page size (842 x 595)
 db.size(842, 595)
@@ -52,11 +53,11 @@ db.fill(None)  # No fill for guidelines
 for i in range(4):
     y = rows[i]
     db.line((0, y), (db.width(), y))
-    
+
     # Draw line at bottom of row
     y_bottom = rows[i] + (rows * 1)
     db.line((0, y_bottom), (db.width(), y_bottom))
-    
+
     # Add row numbers
     db.fill(0, 0, 0, 0.7)
     db.fontSize(8)

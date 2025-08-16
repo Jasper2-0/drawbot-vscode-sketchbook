@@ -42,23 +42,23 @@ drawbot.font("Helvetica")
 for i, char in enumerate(text_to_curve):
     # Calculate angle for each character
     angle = (i / char_count) * 360
-    
+
     # Convert to radians
     rad = math.radians(angle - 90)  # -90 to start at top
-    
+
     # Calculate position
     x = center_x + radius * math.cos(rad)
     y = center_y + radius * math.sin(rad)
-    
+
     # Save state and transform
     drawbot.save()
     drawbot.translate(x, y)
     drawbot.rotate(angle)
-    
+
     # Draw character
     drawbot.fill(0.2, 0.4, 0.7)
     drawbot.text(char, (-drawbot.textSize(char)[0]/2, -drawbot.textSize(char)[1]/2))
-    
+
     drawbot.restore()
 
 # Text effects with transparency
@@ -67,18 +67,18 @@ y_positions = [300, 250, 200, 150]
 
 for i, word in enumerate(words):
     drawbot.fontSize(32 + i * 4)
-    
+
     # Create shadow effect
     drawbot.fill(0, 0, 0, 0.3)
     drawbot.text(word, 55, y_positions[i] - 3)
-    
+
     # Main text with color
     hue = i / len(words)
     if hue < 0.5:
         drawbot.fill(1 - hue, 0.3, 0.7)
     else:
         drawbot.fill(0.3, hue, 1 - hue)
-    
+
     drawbot.text(word, 50, y_positions[i])
 
 # Footer text

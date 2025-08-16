@@ -25,10 +25,10 @@ This document outlines a Test-Driven Development approach for implementing the D
 # tests/test_project_structure.py
 def test_creates_required_directories():
     """Test that project initialization creates all required directories"""
-    
+
 def test_validates_project_structure():
     """Test that project structure validator works correctly"""
-    
+
 def test_loads_configuration():
     """Test that configuration is loaded from various sources"""
 ```
@@ -45,16 +45,16 @@ def test_loads_configuration():
 # tests/test_sketch_manager.py
 def test_creates_new_sketch():
     """Test creating a new sketch file with template"""
-    
+
 def test_validates_sketch_syntax():
     """Test Python syntax validation for sketch files"""
-    
+
 def test_lists_sketches_by_category():
     """Test organizing and listing sketches"""
-    
+
 def test_finds_sketch_by_name():
     """Test sketch discovery and retrieval"""
-    
+
 def test_handles_invalid_sketch_files():
     """Test error handling for malformed sketches"""
 ```
@@ -73,16 +73,16 @@ def test_handles_invalid_sketch_files():
 # tests/test_drawbot_wrapper.py
 def test_initializes_canvas():
     """Test canvas initialization with size parameters"""
-    
+
 def test_draws_basic_shapes():
     """Test drawing rectangles, ovals, and polygons"""
-    
+
 def test_handles_drawbot_errors():
     """Test error handling when DrawBot operations fail"""
-    
+
 def test_captures_output():
     """Test capturing DrawBot output for preview"""
-    
+
 def test_exports_to_formats():
     """Test exporting to PNG, PDF, SVG formats"""
 ```
@@ -101,16 +101,16 @@ def test_exports_to_formats():
 # tests/test_sketch_runner.py
 def test_executes_simple_sketch():
     """Test running a basic sketch successfully"""
-    
+
 def test_captures_execution_errors():
     """Test error handling during sketch execution"""
-    
+
 def test_handles_infinite_loops():
     """Test timeout protection for runaway sketches"""
-    
+
 def test_manages_execution_context():
     """Test isolated execution environment"""
-    
+
 def test_tracks_execution_time():
     """Test performance monitoring"""
 ```
@@ -129,16 +129,16 @@ def test_tracks_execution_time():
 # tests/test_template_engine.py
 def test_loads_template_definitions():
     """Test loading template metadata and files"""
-    
+
 def test_instantiates_template():
     """Test creating new sketch from template"""
-    
+
 def test_validates_template_syntax():
     """Test template file validation"""
-    
+
 def test_supports_template_parameters():
     """Test parameterized template generation"""
-    
+
 def test_handles_missing_templates():
     """Test error handling for invalid templates"""
 ```
@@ -159,13 +159,13 @@ def test_handles_missing_templates():
 # tests/test_preview_engine.py
 def test_generates_preview_image():
     """Test converting sketch output to preview format"""
-    
+
 def test_caches_preview_efficiently():
     """Test preview caching for performance"""
-    
+
 def test_handles_animation_frames():
     """Test frame-based animation preview"""
-    
+
 def test_debounces_rapid_changes():
     """Test efficient handling of rapid file changes"""
 ```
@@ -176,13 +176,13 @@ def test_debounces_rapid_changes():
 # tests/test_animation_framework.py
 def test_creates_frame_sequence():
     """Test generating animation frame sequences"""
-    
+
 def test_calculates_frame_timing():
     """Test frame rate and timing calculations"""
-    
+
 def test_exports_animation_formats():
     """Test exporting to GIF, MP4 formats"""
-    
+
 def test_handles_frame_generation_errors():
     """Test error recovery during frame generation"""
 ```
@@ -193,13 +193,13 @@ def test_handles_frame_generation_errors():
 # tests/test_parameter_control.py
 def test_parses_parameter_definitions():
     """Test extracting parameter definitions from sketch"""
-    
+
 def test_validates_parameter_types():
     """Test type checking for parameters"""
-    
+
 def test_applies_parameter_changes():
     """Test updating sketch with new parameter values"""
-    
+
 def test_persists_parameter_settings():
     """Test saving and loading parameter configurations"""
 ```
@@ -212,13 +212,13 @@ def test_persists_parameter_settings():
 # tests/test_export_manager.py
 def test_batch_exports_multiple_formats():
     """Test exporting single sketch to multiple formats"""
-    
+
 def test_exports_animation_sequences():
     """Test exporting frame sequences and animations"""
-    
+
 def test_handles_export_failures():
     """Test error recovery during export operations"""
-    
+
 def test_manages_export_queue():
     """Test queued export processing"""
 ```
@@ -229,13 +229,13 @@ def test_manages_export_queue():
 # tests/test_vscode_integration.py
 def test_registers_commands():
     """Test VSCode command registration"""
-    
+
 def test_provides_syntax_highlighting():
     """Test enhanced Python syntax for DrawBot"""
-    
+
 def test_shows_inline_preview():
     """Test inline preview functionality"""
-    
+
 def test_handles_workspace_events():
     """Test file system event handling"""
 ```
@@ -247,13 +247,13 @@ def test_handles_workspace_events():
 # tests/mocks/mock_drawbot.py
 class MockDrawBot:
     """Mock DrawBot API for testing without graphics dependencies"""
-    
+
     def size(self, width, height):
         self.canvas_size = (width, height)
-    
+
     def rect(self, x, y, w, h):
         self.shapes.append(('rect', x, y, w, h))
-    
+
     def saveImage(self, path):
         # Mock image saving
         pass
@@ -265,11 +265,11 @@ class MockDrawBot:
 @pytest.fixture
 def temp_project():
     """Create temporary project structure for testing"""
-    
+
 @pytest.fixture
 def sample_sketch():
     """Provide sample sketch content for testing"""
-    
+
 @pytest.fixture
 def mock_drawbot():
     """Provide mocked DrawBot instance"""
