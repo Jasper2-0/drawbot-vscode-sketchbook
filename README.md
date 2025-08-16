@@ -1,26 +1,37 @@
 # DrawBot VSCode Sketchbook
 
-A Processing-inspired creative coding sketchbook for Python using DrawBot. Organize, create, and execute generative art sketches with a powerful command-line interface and project management system.
+A Processing-inspired creative coding sketchbook for Python using DrawBot. Create, organize, and preview generative art sketches with an intuitive command-line interface and real-time web-based live preview studio.
 
 > **⚠️ Platform Requirement**: This project requires **macOS** as DrawBot is a macOS-only graphics library. DrawBot leverages macOS's Core Text and Core Graphics frameworks for high-quality typography and graphics rendering.
 
 ## 🎨 Overview
 
-DrawBot VSCode Sketchbook enables artists, designers, and creative coders to rapidly prototype and iterate on generative art, data visualizations, and creative graphics using Python and DrawBot's powerful 2D graphics capabilities. The system provides organized project management, template-based sketch creation, and safe execution with comprehensive error handling.
+DrawBot VSCode Sketchbook enables artists, designers, and creative coders to rapidly prototype and iterate on generative art, data visualizations, and creative graphics using Python and DrawBot's powerful 2D graphics capabilities. The system features a **live preview web studio** for instant visual feedback, organized project management, template-based sketch creation, and safe execution with comprehensive error handling.
 
 ## ✨ Features
 
+### 🎨 Live Preview Studio (NEW!)
+
+- **Web-Based Interface** - Beautiful browser-based sketch preview and management
+- **Real-Time Execution** - Click "Execute Sketch" to instantly see your art
+- **Multi-Format Support** - PNG, GIF, JPEG, PDF with automatic retina scaling
+- **Error Debugging** - Helpful visual placeholders for Python errors with debugging tips
+- **Categorized Gallery** - Separate sections for your sketches vs educational examples
+- **Live Stats Dashboard** - Overview of your creative work with execution metrics
+
 ### 🏗️ Core System
 
+- **Clean Organization** - User sketches separated from examples and system tests
 - **Project Structure Management** - Automatic scaffolding of organized project directories
-- **Sketch Management** - Create, organize, and manage sketch files with metadata
 - **Template System** - Professional sketch templates for different creative patterns
 - **Safe Execution** - Isolated sketch running with timeout protection and error handling
-- **DrawBot Integration** - Consistent API wrapper with mock support for testing
+- **Educational Examples** - Learn from DrawBot + library examples (drawbotgrid, etc.)
+- **Cache System** - Intelligent preview caching with version control
 
 ### 🖥️ Command Line Interface
 
-- **Professional CLI** - Simple and intuitive `sketchbook` command with 6 core commands
+- **Professional CLI** - Simple and intuitive `sketchbook` command with 7 core commands
+- **Live Preview Server** - Start web interface with `sketchbook live`
 - **Project Initialization** - Set up complete project structure with one command (`init`)
 - **Sketch Creation** - Generate new sketches from templates with automatic naming (`new`)
 - **Template Browsing** - List and explore available sketch starting points (`templates`)
@@ -79,16 +90,27 @@ sketchbook init my-art-project
 cd my-art-project
 ```
 
-### Create and Run Your First Sketch
+### Create and Preview Your First Sketch
 
 ```bash
 # Create a new sketch from template
 sketchbook new my_first_sketch --template minimal_sketch
 
-# Validate the sketch
+# Start the live preview studio
+sketchbook live
+
+# Opens http://localhost:8083 in your browser
+# Click your sketch to open the live preview
+# Click "Execute Sketch" to see instant results!
+```
+
+**Traditional CLI workflow** (if you prefer command-line):
+
+```bash
+# Validate the sketch syntax
 sketchbook validate my_first_sketch
 
-# Run the sketch
+# Run the sketch from command line
 sketchbook run my_first_sketch
 
 # List all sketches
@@ -109,10 +131,15 @@ The project follows a modular, test-driven architecture:
 drawbot-vscode-sketchbook/
 ├── src/
 │   ├── core/                 # Core system components
-│   └── cli/                  # Command-line interface
+│   ├── cli/                  # Command-line interface
+│   └── server/               # Live preview web server
 ├── templates/                # Sketch templates
-├── sketches/                 # User sketch files
-├── tests/                    # Comprehensive test suite
+├── sketches/                 # User creative workspace (clean!)
+├── examples/                 # Educational examples (DrawBot + libraries)
+├── tests/
+│   ├── sketches/             # System test sketches (hidden from users)
+│   └── *.py                  # Test suite
+├── cache/                    # Preview image cache
 ├── docs/                     # Documentation
 └── pyproject.toml            # Project packaging configuration
 ```

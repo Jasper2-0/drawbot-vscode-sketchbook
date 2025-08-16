@@ -14,6 +14,10 @@ sketchbook new my_sketch
 # Create a sketch from template
 sketchbook new art_piece --template basic_shapes
 
+# 🎨 Start live preview studio (NEW!)
+sketchbook live
+
+# Traditional CLI commands:
 # Run a sketch
 sketchbook run my_sketch
 
@@ -51,6 +55,26 @@ List all available sketch templates with descriptions.
 ### `list`
 
 List all sketches in the current project.
+
+### `live [--port <port>]`
+
+🎨 **NEW!** Start the live preview web studio for interactive sketch development.
+
+Opens a beautiful web interface at `http://localhost:8083` featuring:
+- Real-time sketch execution and preview
+- Visual gallery of your sketches and examples  
+- Error debugging with helpful placeholders
+- WebSocket live updates
+- Multi-format support (PNG, GIF, JPEG, PDF)
+
+Options:
+
+- `--port`, `-p` - Server port (default: 8083)
+
+Example:
+```bash
+sketchbook live --port 8080
+```
 
 ### `run <name> [--timeout <seconds>]`
 
