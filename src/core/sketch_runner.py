@@ -104,16 +104,44 @@ class SketchRunner:
         env = os.environ.copy()
         
         # Create execution script that changes directory and runs the sketch
+        sketch_dir = sketch_path.parent
         execution_script = f"""
 import os
 import sys
 import traceback
 
-# Change to project directory
-os.chdir(r'{self.project_path}')
+# Change to sketch directory so relative paths work correctly
+os.chdir(r'{sketch_dir}')
 
-# Add project path to Python path
+# Add project path to Python path for imports
 sys.path.insert(0, r'{self.project_path}')
+
+# Patch DrawBot for retina scaling using imageResolution
+def setup_retina_scaling():
+    try:
+        import drawBot
+        # Store original saveImage function
+        _original_saveImage = drawBot.saveImage
+        
+        def retina_saveImage(path, *args, **kwargs):
+            # For PNG output, use high imageResolution for retina displays
+            if str(path).lower().endswith('.png'):
+                # Set imageResolution to 216 DPI (3x the standard 72 DPI) for retina
+                kwargs['imageResolution'] = 216
+            # For other formats (GIF, JPEG, etc.), don't modify - let DrawBot handle them normally
+            return _original_saveImage(path, *args, **kwargs)
+        
+        # Only patch saveImage function
+        drawBot.saveImage = retina_saveImage
+        
+    except ImportError:
+        pass  # DrawBot not available, skip patching
+
+setup_retina_scaling()
+
+# Create output directory if it doesn't exist
+output_dir = r'{output_dir}'
+os.makedirs(output_dir, exist_ok=True)
 
 try:
     with open(r'{sketch_path}', 'r', encoding='utf-8') as f:
@@ -141,7 +169,7 @@ except Exception as e:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                cwd=str(self.project_path),
+                cwd=str(sketch_dir),
                 env=env
             )
             
@@ -152,6 +180,16 @@ except Exception as e:
                 
                 # Determine output path (look for generated files)
                 output_path = self._find_output_files(output_dir)
+                
+                # If no files found in output dir, also check sketch directory
+                if not output_path:
+                    sketch_dir = sketch_path.parent
+                    output_path = self._find_output_files(sketch_dir)
+                
+                # If still no files found, check sketch's output subdirectory
+                if not output_path:
+                    sketch_output_dir = sketch_path.parent / "output"
+                    output_path = self._find_output_files(sketch_output_dir)
                 
                 if return_code == 0:
                     return ExecutionResult(

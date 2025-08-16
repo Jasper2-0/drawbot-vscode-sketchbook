@@ -186,7 +186,9 @@ def run_sketch(args):
             print(f"   {validation.error}")
             return 1
 
-        result = sr.run_sketch(sketch_path)
+        # Set output directory to the sketch's directory
+        sketch_output_dir = sketch_path.parent / "output"
+        result = sr.run_sketch(sketch_path, output_dir=sketch_output_dir)
 
         if result.success:
             print(f"✅ Sketch completed successfully!")
@@ -286,6 +288,65 @@ def project_info(args):
     return 0
 
 
+def start_live_server(args):
+    """Start the live preview server."""
+    project_path = Path.cwd()
+
+    try:
+        ps = ProjectStructure(project_path)
+        if not ps.validate_structure():
+            print("❌ Not a valid DrawBot sketchbook project.")
+            print("Run 'sketchbook init' to initialize a project.")
+            return 1
+
+        # Import server components
+        try:
+            from ..server.live_preview_server import LivePreviewServer, create_app
+            import uvicorn
+        except ImportError as e:
+            print(f"❌ Failed to import server dependencies: {e}")
+            print("Make sure FastAPI and uvicorn are installed:")
+            print("  pip install fastapi uvicorn websockets")
+            return 1
+
+        # Set up paths
+        sketches_path = project_path / 'sketches'
+        cache_dir = project_path / 'cache'
+        cache_dir.mkdir(exist_ok=True)
+
+        # Create server
+        server = LivePreviewServer(sketches_path, cache_dir, port=args.port)
+        app = create_app(server)
+
+        print("🎨 DrawBot Live Preview Studio")
+        print("=" * 40)
+        print(f"🚀 Starting server on http://localhost:{args.port}")
+        print(f"📁 Sketches directory: {sketches_path}")
+        print(f"💾 Cache directory: {cache_dir}")
+        print()
+        print("✨ Features:")
+        print("  • Real-time sketch previews")
+        print("  • Automatic file watching")
+        print("  • WebSocket live updates")
+        print("  • Retina display support")
+        print()
+        print("📱 Open your browser and start coding!")
+        print("   Press Ctrl+C to stop the server")
+        print()
+
+        # Start server
+        uvicorn.run(app, host='127.0.0.1', port=args.port)
+
+    except KeyboardInterrupt:
+        print("\n👋 Live preview server stopped")
+        return 0
+    except Exception as e:
+        print(f"❌ Error starting live server: {e}")
+        return 1
+
+    return 0
+
+
 
 def main():
     """Main CLI entry point."""
@@ -300,6 +361,8 @@ Examples:
   sketchbook run my_sketch           # Run a sketch
   sketchbook list                    # List all sketches
   sketchbook templates               # List templates
+  sketchbook live                    # Start live preview server
+  sketchbook live --port 8080        # Start server on custom port
         """,
     )
 
@@ -353,6 +416,17 @@ Examples:
     # Info command
     info_parser = subparsers.add_parser("info", help="Show project information")
     info_parser.set_defaults(func=project_info)
+
+    # Live server command
+    live_parser = subparsers.add_parser("live", help="Start the live preview server")
+    live_parser.add_argument(
+        "--port",
+        "-p",
+        type=int,
+        default=8083,
+        help="Port to run the server on (default: 8083)"
+    )
+    live_parser.set_defaults(func=start_live_server)
 
     args = parser.parse_args()
 
