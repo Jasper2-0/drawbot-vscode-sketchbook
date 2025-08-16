@@ -55,11 +55,12 @@ class PreviewEngine:
         self.current_execution: Optional[asyncio.Task] = None
         self.execution_lock = threading.Lock()
     
-    def execute_sketch(self, sketch_path: Path) -> PreviewResult:
+    def execute_sketch(self, sketch_path: Path, sketch_name: Optional[str] = None) -> PreviewResult:
         """Execute a sketch and generate preview image.
         
         Args:
             sketch_path: Path to the sketch file to execute
+            sketch_name: Optional logical name for caching (defaults to path stem)
             
         Returns:
             PreviewResult containing execution status and preview information
@@ -97,7 +98,7 @@ class PreviewEngine:
                 )
             
             # Convert output to preview image if available
-            preview_result = self._generate_preview_image(sketch_path, execution_result)
+            preview_result = self._generate_preview_image(sketch_path, execution_result, sketch_name)
             
             execution_time = time.time() - start_time
             preview_result.execution_time = execution_time
@@ -125,17 +126,19 @@ class PreviewEngine:
             if self.current_execution and not self.current_execution.done():
                 self.current_execution.cancel()
     
-    def _generate_preview_image(self, sketch_path: Path, execution_result: ExecutionResult) -> PreviewResult:
+    def _generate_preview_image(self, sketch_path: Path, execution_result: ExecutionResult, sketch_name: Optional[str] = None) -> PreviewResult:
         """Generate preview image from sketch execution result.
         
         Args:
             sketch_path: Path to the executed sketch
             execution_result: Result from sketch execution
+            sketch_name: Optional logical name for caching
             
         Returns:
             PreviewResult with preview image information
         """
-        sketch_name = sketch_path.stem
+        # Use provided sketch name or fall back to path stem
+        cache_key = sketch_name if sketch_name is not None else sketch_path.stem
         
         # If no output was generated, return success but no preview
         if not execution_result.output_path or not execution_result.output_path.exists():
@@ -155,7 +158,7 @@ class PreviewEngine:
                 with open(execution_result.output_path, 'rb') as f:
                     image_data = f.read()
                 
-                cache_result = self.cache.store_preview(sketch_name, image_data)
+                cache_result = self.cache.store_preview(cache_key, image_data)
                 if cache_result.success:
                     return PreviewResult(
                         success=True,
@@ -191,7 +194,7 @@ class PreviewEngine:
                 with open(conversion_result.png_path, 'rb') as f:
                     image_data = f.read()
                 
-                cache_result = self.cache.store_preview(sketch_name, image_data)
+                cache_result = self.cache.store_preview(cache_key, image_data)
                 if cache_result.success:
                     # Clean up temporary conversion file
                     try:

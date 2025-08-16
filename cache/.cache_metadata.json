@@ -50,5 +50,23 @@
       "created_at": "2025-08-15T21:52:56.079526",
       "file_size_bytes": 195977
     }
+  ],
+  "drawbotgrid_01_column_grid_basic": [
+    {
+      "sketch_name": "drawbotgrid_01_column_grid_basic",
+      "version": 1755372097653,
+      "file_path": "/Users/scjas/Developer/01 - Jasper2-0/01 - Github Private/drawbot-vscode-sketchbook/cache/drawbotgrid_01_column_grid_basic_v1755372097653.png",
+      "created_at": "2025-08-16T21:21:37.659909",
+      "file_size_bytes": 114899
+    }
+  ],
+  "colorful_art": [
+    {
+      "sketch_name": "colorful_art",
+      "version": 1755372105120,
+      "file_path": "/Users/scjas/Developer/01 - Jasper2-0/01 - Github Private/drawbot-vscode-sketchbook/cache/colorful_art_v1755372105120.png",
+      "created_at": "2025-08-16T21:21:45.120370",
+      "file_size_bytes": 111570
+    }
   ]
 }

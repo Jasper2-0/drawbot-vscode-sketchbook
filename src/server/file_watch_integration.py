@@ -146,7 +146,7 @@ class FileWatchIntegration:
                 # Execute sketch with timing
                 import time
                 start_time = time.time()
-                result = self.preview_engine.execute_sketch(file_path)
+                result = self.preview_engine.execute_sketch(file_path, sketch_name)
                 total_time = time.time() - start_time
                 self.logger.info(f"Total execution time for {sketch_name}: {total_time:.3f}s")
                 

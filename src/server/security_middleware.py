@@ -104,11 +104,18 @@ class SecurityMiddleware:
                     error="Path traversal attempt detected"
                 )
             
-            # Find sketch file in allowed directories
-            for allowed_dir in self.config.allowed_sketch_directories:
-                sketch_path = self._find_sketch_file(allowed_dir, sanitized_name)
-                if sketch_path:
-                    # Verify the resolved path is within allowed directory
+            # Use SketchManager for consistent sketch discovery
+            from ..core.sketch_manager import SketchManager
+            
+            # Create SketchManager to use consistent logic
+            project_path = self.config.allowed_sketch_directories[0].parent  # Get project root
+            sm = SketchManager(project_path)
+            
+            # Find sketch using the same logic as CLI
+            sketch_path = sm.find_sketch(sanitized_name)
+            if sketch_path:
+                # Verify the resolved path is within allowed directories
+                for allowed_dir in self.config.allowed_sketch_directories:
                     if self._is_path_within_directory(sketch_path, allowed_dir):
                         # Check if sketch name matches allowed patterns
                         if self._matches_allowed_patterns(sanitized_name):
