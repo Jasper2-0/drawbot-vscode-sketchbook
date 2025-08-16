@@ -40,7 +40,14 @@ drawbot.saveImage("sketch_output.png")
         """
         self.project_path = project_path
         self.sketches_dir = project_path / 'sketches'
+        self.examples_dir = project_path / 'examples'
         self.templates_dir = project_path / 'templates'
+        
+        # Define source directories for sketch discovery
+        self.source_directories = [
+            ('sketches', self.sketches_dir),
+            ('examples', self.examples_dir)
+        ]
     
     def create_sketch(self, name: str, template: Optional[str] = None) -> Path:
         """Create a new sketch folder with <folder_name>.py file.
@@ -128,24 +135,26 @@ drawbot.saveImage("sketch_output.png")
         return [f for f in category_dir.glob('*.py') if f.is_file()]
     
     def find_sketch(self, name: str) -> Optional[Path]:
-        """Find a sketch by folder name.
+        """Find a sketch by name across all source directories.
         
         Args:
-            name: Name of the sketch folder to find
+            name: Name of the sketch to find. Can be:
+                  - Simple name for sketches (e.g., 'my_sketch')
+                  - Prefixed name for examples (e.g., 'drawbotgrid_01_column_grid_basic')
             
         Returns:
-            Path to the <folder_name>.py file if found, None otherwise
+            Path to the sketch file if found, None otherwise
         """
-        # Remove .py extension if provided (we look for folders, not files)
+        # Remove .py extension if provided
         if name.endswith('.py'):
             name = name[:-3]
         
-        # Look for sketch folder with <folder_name>.py file
-        sketch_folder = self.sketches_dir / name
-        if sketch_folder.exists() and sketch_folder.is_dir():
-            sketch_file = sketch_folder / f'{sketch_folder.name}.py'
-            if sketch_file.exists() and sketch_file.is_file():
-                return sketch_file
+        # Get all available sketches and find by name
+        all_sketches = self.list_all_sketches()
+        
+        for sketch_info in all_sketches:
+            if sketch_info['name'] == name:
+                return sketch_info['path']
         
         return None
     
@@ -224,21 +233,58 @@ drawbot.saveImage("sketch_output.png")
         
         return metadata
     
-    def list_all_sketches(self) -> List[Path]:
-        """List all <folder_name>.py files in sketch folders.
+    def list_all_sketches(self) -> List[Dict[str, Any]]:
+        """List all sketches from both sketches and examples directories.
         
         Returns:
-            List of all <folder_name>.py file paths
+            List of dictionaries containing sketch information:
+            {
+                'name': str,           # Unique identifier for CLI usage
+                'display_name': str,   # Human-readable name
+                'path': Path,          # Path to the sketch file
+                'source_type': str,    # 'sketch' or 'example'
+                'category': str        # Category for examples (e.g., 'drawbotgrid')
+            }
         """
-        if not self.sketches_dir.exists():
-            return []
+        all_sketches = []
         
-        sketches = []
-        # Look for <folder_name>.py files in subdirectories
-        for item in self.sketches_dir.iterdir():
-            if item.is_dir():
-                sketch_file = item / f'{item.name}.py'
-                if sketch_file.exists() and sketch_file.is_file():
-                    sketches.append(sketch_file)
+        for source_type, source_dir in self.source_directories:
+            if not source_dir.exists():
+                continue
+                
+            if source_type == 'sketches':
+                # Handle sketches directory - folder-based structure
+                for item in source_dir.iterdir():
+                    if item.is_dir():
+                        sketch_file = item / f'{item.name}.py'
+                        if sketch_file.exists() and sketch_file.is_file():
+                            all_sketches.append({
+                                'name': item.name,
+                                'display_name': item.name,
+                                'path': sketch_file,
+                                'source_type': 'sketch',
+                                'category': 'Sketches'
+                            })
+            
+            elif source_type == 'examples':
+                # Handle examples directory - can have nested categories
+                for category_item in source_dir.iterdir():
+                    if category_item.is_dir():
+                        category_name = category_item.name
+                        
+                        # Look for Python files in the category directory
+                        for py_file in category_item.glob("*.py"):
+                            if py_file.is_file():
+                                # Create unique name for CLI usage
+                                unique_name = f"{category_name}_{py_file.stem}"
+                                display_name = f"{category_name}: {py_file.stem}"
+                                
+                                all_sketches.append({
+                                    'name': unique_name,
+                                    'display_name': display_name,
+                                    'path': py_file,
+                                    'source_type': 'example',
+                                    'category': f"Examples: {category_name.title()}"
+                                })
         
-        return sketches
+        return all_sketches

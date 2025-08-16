@@ -128,26 +128,36 @@ def list_sketches(args):
             return 1
 
         sm = SketchManager(project_path)
-        sketches = sm.list_all_sketches()
+        all_sketches = sm.list_all_sketches()
 
-        if not sketches:
+        if not all_sketches:
             print("📝 No sketches found.")
             print("Create one with: sketchbook new my_sketch")
             return 0
 
-        print(f"📝 Found {len(sketches)} sketches:")
+        # Group sketches by category
+        sketches_by_category = {}
+        for sketch in all_sketches:
+            category = sketch['category']
+            if category not in sketches_by_category:
+                sketches_by_category[category] = []
+            sketches_by_category[category].append(sketch)
+
+        print(f"📝 Found {len(all_sketches)} sketches and examples:")
         print()
 
-        for sketch in sorted(sketches, key=lambda p: p.parent.name):
-            folder_name = sketch.parent.name
-            print(f"  🎨 {folder_name}")
-
-            try:
-                metadata = sm.get_sketch_metadata(sketch)
-                if metadata.get("description"):
-                    print(f"     {metadata['description']}")
-            except:
-                pass
+        # Display sketches by category
+        for category, sketches in sorted(sketches_by_category.items()):
+            print(f"  {category}:")
+            for sketch in sorted(sketches, key=lambda s: s['name']):
+                icon = "🎨" if sketch['source_type'] == 'sketch' else "📚"
+                name = sketch['name']
+                display_name = sketch['display_name']
+                
+                if name == display_name:
+                    print(f"    {icon} {name}")
+                else:
+                    print(f"    {icon} {name} ({display_name})")
             print()
 
     except Exception as e:
@@ -265,8 +275,15 @@ def project_info(args):
             print("✅ Valid DrawBot sketchbook project")
 
             sm = SketchManager(project_path)
-            sketches = sm.list_all_sketches()
-            print(f"🎨 Sketches: {len(sketches)}")
+            all_sketches = sm.list_all_sketches()
+            
+            # Count by source type
+            user_sketches = [s for s in all_sketches if s['source_type'] == 'sketch']
+            examples = [s for s in all_sketches if s['source_type'] == 'example']
+            
+            print(f"🎨 Your sketches: {len(user_sketches)}")
+            print(f"📚 Examples: {len(examples)}")
+            print(f"📝 Total: {len(all_sketches)}")
 
             templates_dir = project_path / "templates"
             templates = (
