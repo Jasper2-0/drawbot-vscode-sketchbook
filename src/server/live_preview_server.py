@@ -208,7 +208,7 @@ class LivePreviewServer:
         
         try:
             # Execute sketch
-            result = self.preview_engine.execute_sketch(validation.resolved_path)
+            result = self.preview_engine.execute_sketch(validation.resolved_path, sketch_name)
             
             # Update stats
             if result.success:
