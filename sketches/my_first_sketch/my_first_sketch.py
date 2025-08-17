@@ -16,7 +16,7 @@ drawbot.rect(10, 10, 200, 200)
 # For example:
 drawbot.fill(0)  # Black
 drawbot.fontSize(20)
-drawbot.text("Start creating wonderful things", (50, 200))
+drawbot.text("Start creating third things", (50, 200))
 
 # Save the result
 drawbot.saveImage("output.png")
