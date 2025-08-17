@@ -224,6 +224,15 @@ output.mp4
 *_sketch_output.txt
 python_sketch_output.txt
 
+# Page extraction files (temporary, generated during execution)
+*_page_*.png
+sketches/*_page_*.png
+sketches/output.pdf
+
+# Cache directory (dynamic preview cache, should not be committed)
+cache/
+cache/*
+
 # Test sketches (not part of the main project)
 sketches/test_*
 
