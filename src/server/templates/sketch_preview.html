@@ -113,7 +113,7 @@
                         </div>
                         {% endif %}
                     </div>
-                    
+
                     <!-- All pages display -->
                     <div class="space-y-8">
                         {% for page in page_urls %}
@@ -165,20 +165,20 @@
     function handleImageLoad(img) {
         const container = document.getElementById('preview-container');
         const indicator = document.getElementById('multi-page-indicator');
-        
+
         // Check if image is very tall (likely multi-page)
         const aspectRatio = img.naturalHeight / img.naturalWidth;
         const isMultiPage = aspectRatio > 3; // More than 3:1 aspect ratio suggests multi-page
-        
+
         if (isMultiPage && container && indicator) {
             // Apply multi-page styling
             container.classList.add('multi-page-preview');
             container.style.maxHeight = '80vh';
             container.style.overflowY = 'auto';
-            
+
             // Show multi-page indicator
             indicator.classList.remove('hidden');
-            
+
             // Log for debugging
             console.log(`Multi-page detected: ${img.naturalWidth}x${img.naturalHeight} (aspect ratio: ${aspectRatio.toFixed(2)})`);
         } else {

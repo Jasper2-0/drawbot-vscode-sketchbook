@@ -80,6 +80,9 @@ class SketchbookWebSocket {
             case 'execution_error':
                 this.onExecutionError(payload);
                 break;
+            case 'thumbnail_updated':
+                this.onThumbnailUpdated(payload);
+                break;
             default:
                 console.log('Unhandled WebSocket message:', data);
         }
@@ -123,12 +126,28 @@ class SketchbookWebSocket {
 
     onExecutionComplete(payload) {
         console.log('Execution completed:', payload);
-        this.showNotification('✅ Sketch executed successfully', 'success');
+        this.showNotification('Sketch executed successfully', 'success');
     }
 
     onExecutionError(payload) {
         console.error('Execution error:', payload);
-        this.showNotification(`❌ Execution failed: ${payload.error}`, 'error');
+        this.showNotification(`Execution failed: ${payload.error}`, 'error');
+    }
+
+    onThumbnailUpdated(payload) {
+        console.log('Thumbnail updated:', payload);
+        
+        // Update thumbnail in sketch cards if on dashboard
+        if (typeof updateSketchCardThumbnail === 'function') {
+            updateSketchCardThumbnail(payload.sketch_name, payload);
+        }
+        
+        // Show notification for successful thumbnail generation
+        if (payload.success && payload.thumbnail_url) {
+            this.showNotification(`Thumbnail ready for "${payload.sketch_name}"`, 'success');
+        } else if (!payload.success) {
+            console.warn(`Thumbnail generation failed for ${payload.sketch_name}:`, payload.error);
+        }
     }
 
     // Utility methods

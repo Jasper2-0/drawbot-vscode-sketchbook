@@ -260,9 +260,10 @@ drawbot.saveImage("sketch_output.png")
                 continue
 
             if source_type == "sketches":
-                # Handle sketches directory - folder-based structure
+                # Handle sketches directory - both folder-based and flat file structure
                 for item in source_dir.iterdir():
                     if item.is_dir():
+                        # Folder-based structure: sketches/sketch_name/sketch_name.py
                         sketch_file = item / f"{item.name}.py"
                         if sketch_file.exists() and sketch_file.is_file():
                             all_sketches.append(
@@ -274,6 +275,18 @@ drawbot.saveImage("sketch_output.png")
                                     "category": "Sketches",
                                 }
                             )
+                    elif item.is_file() and item.suffix == ".py":
+                        # Flat file structure: sketches/sketch_name.py
+                        sketch_name = item.stem
+                        all_sketches.append(
+                            {
+                                "name": sketch_name,
+                                "display_name": sketch_name,
+                                "path": item,
+                                "source_type": "sketch",
+                                "category": "Sketches",
+                            }
+                        )
 
             elif source_type == "examples":
                 # Handle examples directory - can have nested categories

@@ -8,6 +8,7 @@ function initializeDashboard() {
     if (window.sketchbookWS) {
         window.sketchbookWS.on('preview_updated', handlePreviewUpdate);
         window.sketchbookWS.on('execution_complete', handleExecutionComplete);
+        window.sketchbookWS.on('thumbnail_updated', handleThumbnailUpdate);
     }
 
     // Add loading states to buttons
@@ -28,17 +29,17 @@ function executeSketch(sketchName) {
         showExecutionLoading(sketchName, false);
 
         if (data.success) {
-            showNotification(`✅ "${sketchName}" executed successfully!`, 'success');
+            showNotification(`"${sketchName}" executed successfully!`, 'success');
             // Refresh the page to show updated preview
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification(`❌ Execution failed: ${data.error}`, 'error');
+            showNotification(`Execution failed: ${data.error}`, 'error');
         }
     })
     .catch(error => {
         showExecutionLoading(sketchName, false);
         console.error('Error executing sketch:', error);
-        showNotification('❌ Network error during execution', 'error');
+        showNotification('Network error during execution', 'error');
     });
 }
 
@@ -50,7 +51,7 @@ function viewCode(sketchName) {
     })
     .catch(error => {
         console.error('Error fetching code:', error);
-        showNotification('❌ Failed to load code', 'error');
+        showNotification('Failed to load code', 'error');
     });
 }
 
@@ -71,7 +72,7 @@ function showCodeModal(sketchName, code) {
     modalContent.innerHTML = `
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold">📝 ${sketchName}</h2>
+                <h2 class="text-2xl font-bold">${sketchName}</h2>
                 <button onclick="this.closest('.fixed').remove()"
                         class="text-white hover:text-gray-200 text-2xl">&times;</button>
             </div>
@@ -81,7 +82,7 @@ function showCodeModal(sketchName, code) {
         </div>
         <div class="bg-gray-50 p-6 border-t flex justify-end space-x-3">
             <button onclick="copyToClipboard(\`${escapeForJS(code)}\`)"
-                    class="btn-secondary">📋 Copy Code</button>
+                    class="btn-secondary">Copy Code</button>
             <button onclick="this.closest('.fixed').remove()"
                     class="btn-primary">Close</button>
         </div>
@@ -100,7 +101,7 @@ function showExecutionLoading(sketchName, isLoading) {
                 button.innerHTML = '<div class="loading-spinner"></div> Executing...';
             } else {
                 button.disabled = false;
-                button.innerHTML = '▶️ Execute';
+                button.innerHTML = 'Execute';
             }
         }
     });
@@ -141,6 +142,62 @@ function handleExecutionComplete(data) {
     setTimeout(() => window.location.reload(), 1000);
 }
 
+function handleThumbnailUpdate(data) {
+    updateSketchCardThumbnail(data.sketch_name, data);
+}
+
+// Global function for WebSocket integration
+window.updateSketchCardThumbnail = function(sketchName, payload) {
+    // Find the sketch card by sketch name
+    const sketchCards = document.querySelectorAll('.preview-card');
+    
+    sketchCards.forEach(card => {
+        // Look for the sketch name in various places (link href, button onclick, etc.)
+        const links = card.querySelectorAll('a[href*="/sketch/"], button[onclick*="executeSketch"]');
+        const isMatchingCard = Array.from(links).some(element => {
+            return element.href?.includes(`/sketch/${sketchName}`) || 
+                   element.getAttribute('onclick')?.includes(`'${sketchName}'`);
+        });
+        
+        if (isMatchingCard) {
+            updateThumbnailInCard(card, payload);
+        }
+    });
+};
+
+function updateThumbnailInCard(card, payload) {
+    const thumbnailContainer = card.querySelector('.relative.overflow-hidden, .thumbnail-placeholder');
+    
+    if (!thumbnailContainer) return;
+    
+    if (payload.success && payload.thumbnail_url) {
+        // Replace placeholder with actual thumbnail
+        thumbnailContainer.innerHTML = `
+            <a href="/sketch/${payload.sketch_name}" class="block relative overflow-hidden group thumbnail-fade-in">
+                <img src="${payload.thumbnail_url}" 
+                     alt="${payload.sketch_name} preview"
+                     class="preview-card-image object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                     onerror="this.parentElement.innerHTML='<div class=\\'thumbnail-placeholder thumbnail-error\\'><div class=\\'text-4xl mb-2\\'>⚠</div><div class=\\'text-sm text-gray-600\\'>Preview Error</div></div>'">
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white bg-opacity-90 px-3 py-2 rounded-lg text-sm font-medium text-gray-800">
+                        Open Live Preview
+                    </div>
+                </div>
+            </a>
+        `;
+    } else if (!payload.success) {
+        // Show error state
+        thumbnailContainer.innerHTML = `
+            <a href="/sketch/${payload.sketch_name}" class="block thumbnail-placeholder thumbnail-error cursor-pointer hover:bg-opacity-80 transition-all duration-300">
+                <div class="text-4xl mb-2">⚠</div>
+                <div class="text-sm text-red-600">Thumbnail failed</div>
+                <div class="text-xs text-red-500 mt-1">${payload.error || 'Unknown error'}</div>
+                <div class="text-xs text-gray-500 mt-2">Click to open live preview</div>
+            </a>
+        `;
+    }
+}
+
 // Utility functions
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -154,10 +211,10 @@ function escapeForJS(text) {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        showNotification('📋 Code copied to clipboard!', 'success');
+        showNotification('Code copied to clipboard!', 'success');
     }).catch(err => {
         console.error('Failed to copy:', err);
-        showNotification('❌ Failed to copy code', 'error');
+        showNotification('Failed to copy code', 'error');
     });
 }
 

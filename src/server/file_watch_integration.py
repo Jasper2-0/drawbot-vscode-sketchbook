@@ -143,6 +143,7 @@ class FileWatchIntegration:
 
         async with self.execution_locks[sketch_name]:
             try:
+                print(f"[TIMING] File changed detected: {sketch_name}")
                 self.logger.info(f"File changed: {sketch_name}")
 
                 # Broadcast execution started
@@ -154,8 +155,10 @@ class FileWatchIntegration:
                 import time
 
                 start_time = time.time()
+                print(f"[TIMING] Starting execution of {sketch_name}")
                 result = self.preview_engine.execute_sketch(file_path, sketch_name)
                 total_time = time.time() - start_time
+                print(f"[TIMING] Total execution time for {sketch_name}: {total_time:.3f}s")
                 self.logger.info(
                     f"Total execution time for {sketch_name}: {total_time:.3f}s"
                 )

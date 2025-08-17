@@ -147,7 +147,7 @@ function updatePreviewImage(imageUrl) {
     // Check if this is a multi-page layout
     const previewContent = document.getElementById('preview-content');
     const isMultiPage = previewContent && previewContent.innerHTML.includes('Multi-page:');
-    
+
     if (isMultiPage) {
         // Don't override multi-page layouts with single-page updates
         console.log('Skipping single-page update for multi-page layout');

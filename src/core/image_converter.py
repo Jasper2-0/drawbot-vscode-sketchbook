@@ -169,11 +169,13 @@ class ImageConverter:
                 pdf_document.close()
                 return ConversionResult(success=False, error="PDF contains no pages")
 
-            # Convert first page to image
-            page = pdf_document[0]
+            # Convert all pages to images and combine vertically
+            page_count = pdf_document.page_count
+            page_pixmaps = []
 
-            # Calculate scaling for retina display quality
-            page_rect = page.rect
+            # Calculate scaling for retina display quality using first page
+            first_page = pdf_document[0]
+            page_rect = first_page.rect
 
             # Use retina scale factor, but respect max dimensions
             scale_x = self.max_width / page_rect.width
@@ -182,20 +184,45 @@ class ImageConverter:
 
             # Prefer retina scale, but cap at max dimensions
             scale = min(self.retina_scale, max_scale)
-
-            # Render page to pixmap
             matrix = fitz.Matrix(scale, scale)
-            pixmap = page.get_pixmap(matrix=matrix)
+
+            # Render all pages to pixmaps
+            for page_num in range(page_count):
+                page = pdf_document[page_num]
+                pixmap = page.get_pixmap(matrix=matrix)
+                page_pixmaps.append(pixmap)
+
+            # If single page, use it directly
+            if page_count == 1:
+                final_pixmap = page_pixmaps[0]
+            else:
+                # Combine multiple pages vertically
+                page_width = page_pixmaps[0].width
+                page_height = page_pixmaps[0].height
+                total_height = page_height * page_count
+
+                # Create combined pixmap
+                final_pixmap = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, page_width, total_height))
+                final_pixmap.clear_with(value=255)  # White background
+
+                # Copy each page into the combined pixmap
+                for i, page_pixmap in enumerate(page_pixmaps):
+                    y_offset = i * page_height
+                    final_pixmap.copy(page_pixmap, fitz.IRect(0, y_offset, page_width, y_offset + page_height))
+
+                # Cleanup individual page pixmaps
+                for pixmap in page_pixmaps:
+                    pixmap = None
 
             # Generate unique filename
             output_filename = f"preview_{uuid.uuid4().hex[:8]}.png"
             output_path = output_dir / output_filename
 
             # Save PNG
-            pixmap.save(str(output_path))
+            final_pixmap.save(str(output_path))
 
             # Cleanup
-            pixmap = None
+            final_pixmap = None
             pdf_document.close()
 
             return ConversionResult(success=True, png_path=output_path)

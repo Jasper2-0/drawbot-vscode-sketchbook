@@ -12,7 +12,7 @@
     <div class="max-w-7xl mx-auto px-6 py-12">
         <div class="text-center">
             <h1 class="text-5xl font-bold mb-4 animate-float">
-                🎨 DrawBot Live Preview Studio
+                DrawBot Live Preview Studio
             </h1>
             <p class="text-xl text-purple-100 mb-8">
                 Real-time sketch development with instant visual feedback
@@ -22,11 +22,11 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
                 <div class="stats-card">
                     <div class="text-3xl font-bold">{{ user_sketches_count }}</div>
-                    <div class="text-purple-100">🎨 Your Sketches</div>
+                    <div class="text-purple-100">Your Sketches</div>
                 </div>
                 <div class="stats-card">
                     <div class="text-3xl font-bold">{{ examples_count }}</div>
-                    <div class="text-purple-100">📚 Examples</div>
+                    <div class="text-purple-100">Examples</div>
                 </div>
                 <div class="stats-card">
                     <div class="text-3xl font-bold">{{ cache_stats.total_versions }}</div>
@@ -46,7 +46,7 @@
     {% if not sketches %}
         <div class="col-span-full">
             <div class="text-center py-20 bg-white rounded-2xl shadow-lg border border-gray-200">
-                <div class="text-8xl mb-6 animate-pulse-slow">🎨</div>
+                <div class="text-8xl mb-6 animate-pulse-slow text-gray-400">○</div>
                 <h3 class="text-2xl font-bold text-gray-800 mb-4">No sketches found</h3>
                 <p class="text-gray-600 mb-8 max-w-md mx-auto">
                     Add Python files to your project directory to see them here.
@@ -65,7 +65,7 @@
         {% if user_sketches %}
         <div class="mb-12">
             <div class="mb-8">
-                <h2 class="section-title">🎨 Your Sketches</h2>
+                <h2 class="section-title">Your Sketches</h2>
                 <p class="text-gray-600">Your creative work and personal projects</p>
             </div>
 
@@ -81,7 +81,7 @@
         {% if examples %}
         <div class="mb-12">
             <div class="mb-8">
-                <h2 class="section-title">📚 Examples & Tutorials</h2>
+                <h2 class="section-title">Examples & Tutorials</h2>
                 <p class="text-gray-600">Learn DrawBot and explore creative techniques with these examples</p>
             </div>
 
@@ -99,7 +99,7 @@
 <footer class="bg-gradient-to-r from-gray-800 to-gray-900 text-white mt-20">
     <div class="max-w-7xl mx-auto px-6 py-12">
         <div class="text-center">
-            <div class="text-2xl font-bold mb-4">🎨 DrawBot Live Preview Studio</div>
+            <div class="text-2xl font-bold mb-4">DrawBot Live Preview Studio</div>
             <p class="text-gray-300 mb-6">Bringing your creative code to life</p>
             <div class="text-sm text-gray-400">
                 Powered by DrawBot • FastAPI • WebSocket • Real-time Updates
