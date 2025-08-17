@@ -132,19 +132,19 @@ def setup_drawbot_patches():
     try:
         import drawBot
         from pathlib import Path
-        
+
         # Store original functions
         _original_saveImage = drawBot.saveImage
         _original_newPage = drawBot.newPage
-        
+
         # Track pages for multi-page documents
         _page_count = 0
         _current_sketch_name = Path(r'{sketch_path}').stem
         _page_images = []  # Store individual pages as they're created
-        
+
         def patched_newPage(*args, **kwargs):
             nonlocal _page_count, _page_images
-            
+
             # Before creating new page, save current page if we have content
             if _page_count >= 0:  # Always save, including page 0 (first page)
                 try:
@@ -155,17 +155,17 @@ def setup_drawbot_patches():
                     print(f"Saved page {{_page_count + 1}} to {{page_filename}}", file=sys.stderr)
                 except Exception as e:
                     print(f"Warning: Could not save page {{_page_count + 1}}: {{e}}", file=sys.stderr)
-            
+
             _page_count += 1
             return _original_newPage(*args, **kwargs)
-        
+
         def patched_saveImage(path, *args, **kwargs):
             nonlocal _page_count, _page_images
-            
+
             # For PNG output, use high imageResolution for retina displays
             if str(path).lower().endswith('.png'):
                 kwargs['imageResolution'] = 216
-            
+
             # If this is a PDF and we have multiple pages, save the final page first
             if str(path).lower().endswith('.pdf') and _page_count >= 0:
                 try:
@@ -177,7 +177,7 @@ def setup_drawbot_patches():
                     print(f"Saved final page {{_page_count + 1}} to {{page_filename}}", file=sys.stderr)
                 except Exception as e:
                     print(f"Warning: Could not save final page: {{e}}", file=sys.stderr)
-            
+
             # Call original saveImage for the main output
             result = _original_saveImage(path, *args, **kwargs)
             return result
@@ -241,7 +241,9 @@ except Exception as e:
                 # If still no files found, check sketch's output subdirectory
                 if not output_path:
                     sketch_output_dir = sketch_path.parent / "output"
-                    output_path, output_files = self._find_output_files(sketch_output_dir)
+                    output_path, output_files = self._find_output_files(
+                        sketch_output_dir
+                    )
 
                 if return_code == 0:
                     return ExecutionResult(
@@ -280,9 +282,11 @@ except Exception as e:
                 success=False, error=f"Failed to execute sketch: {str(e)}"
             )
 
-    def _find_output_files(self, output_dir: Path) -> tuple[Optional[Path], Optional[List[Path]]]:
+    def _find_output_files(
+        self, output_dir: Path
+    ) -> tuple[Optional[Path], Optional[List[Path]]]:
         """Find generated output files in the output directory.
-        
+
         Returns:
             tuple: (primary_output_path, all_output_files)
                    primary_output_path: Main output file (for backward compatibility)
@@ -306,8 +310,12 @@ except Exception as e:
             return None, None
 
         # Check for multi-page pattern (page_1.png, page_2.png, etc.)
-        page_files = [f for f in output_files if f.stem.startswith('page_') and f.stem[5:].isdigit()]
-        
+        page_files = [
+            f
+            for f in output_files
+            if f.stem.startswith("page_") and f.stem[5:].isdigit()
+        ]
+
         if page_files:
             # Sort page files by page number
             page_files.sort(key=lambda f: int(f.stem[5:]))

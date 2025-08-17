@@ -165,7 +165,7 @@ class PreviewEngine:
                 # Multi-page output - use first page as primary preview
                 # TODO: Later we can enhance this to show all pages in sequence
                 primary_file = execution_result.output_files[0]
-                
+
                 with open(primary_file, "rb") as f:
                     image_data = f.read()
 
@@ -173,7 +173,7 @@ class PreviewEngine:
                 if cache_result.success:
                     # Try to generate thumbnail immediately
                     thumbnail_url = self.cache.generate_thumbnail_for_entry(cache_key)
-                    
+
                     return PreviewResult(
                         success=True,
                         preview_url=cache_result.preview_url,
@@ -187,7 +187,7 @@ class PreviewEngine:
                         success=False,
                         error=f"Failed to cache preview: {cache_result.error}",
                     )
-            
+
             # Single file output
             else:
                 # Check if output is a direct image format (PNG, GIF, JPEG, etc.)
@@ -202,8 +202,10 @@ class PreviewEngine:
                     cache_result = self.cache.store_preview(cache_key, image_data)
                     if cache_result.success:
                         # Try to generate thumbnail immediately
-                        thumbnail_url = self.cache.generate_thumbnail_for_entry(cache_key)
-                        
+                        thumbnail_url = self.cache.generate_thumbnail_for_entry(
+                            cache_key
+                        )
+
                         return PreviewResult(
                             success=True,
                             preview_url=cache_result.preview_url,
@@ -220,7 +222,9 @@ class PreviewEngine:
 
                 # For PDF files, look for auto-extracted pages
                 elif file_ext == ".pdf":
-                    extracted_pages = self._extract_pdf_pages(execution_result.output_path, cache_key)
+                    extracted_pages = self._extract_pdf_pages(
+                        execution_result.output_path, cache_key
+                    )
                     if extracted_pages:
                         # Use first page as primary preview
                         with open(extracted_pages[0], "rb") as f:
@@ -229,8 +233,10 @@ class PreviewEngine:
                         cache_result = self.cache.store_preview(cache_key, image_data)
                         if cache_result.success:
                             # Try to generate thumbnail immediately
-                            thumbnail_url = self.cache.generate_thumbnail_for_entry(cache_key)
-                            
+                            thumbnail_url = self.cache.generate_thumbnail_for_entry(
+                                cache_key
+                            )
+
                             return PreviewResult(
                                 success=True,
                                 preview_url=cache_result.preview_url,
@@ -250,7 +256,7 @@ class PreviewEngine:
                             success=False,
                             error="Multi-page PDF detected but individual pages were not extracted. Please ensure your sketch uses drawbot.newPage() for multiple pages.",
                         )
-                
+
                 else:
                     # Unsupported output format
                     return PreviewResult(
@@ -263,13 +269,15 @@ class PreviewEngine:
                 success=False, error=f"Preview image generation failed: {str(e)}"
             )
 
-    def _extract_pdf_pages(self, pdf_path: Path, cache_key: str) -> Optional[List[Path]]:
+    def _extract_pdf_pages(
+        self, pdf_path: Path, cache_key: str
+    ) -> Optional[List[Path]]:
         """Extract individual pages from PDF by looking for auto-generated page files.
-        
+
         Args:
             pdf_path: Path to the PDF file
             cache_key: Cache key for naming extracted pages
-            
+
         Returns:
             List of paths to extracted page PNG files, or None if extraction failed
         """
@@ -277,28 +285,28 @@ class PreviewEngine:
             # Look for auto-generated page files in the same directory as the PDF
             pdf_dir = pdf_path.parent
             page_pattern = pdf_dir / f"{cache_key}_page_*.png"
-            
+
             # Find all page files
             page_files = list(pdf_dir.glob(f"{cache_key}_page_*.png"))
-            
+
             if page_files:
                 # Sort by page number
-                page_files.sort(key=lambda f: int(f.stem.split('_page_')[-1]))
+                page_files.sort(key=lambda f: int(f.stem.split("_page_")[-1]))
                 return page_files
-            
+
             # If no auto-generated pages found, return None for now
             # In the future, we could add actual PDF extraction here
             return None
-            
+
         except Exception as e:
             return None
 
     def get_multi_page_files(self, sketch_name: str) -> Optional[List[Path]]:
         """Get all page files for a multi-page sketch.
-        
+
         Args:
             sketch_name: Name of the sketch
-            
+
         Returns:
             List of paths to page files, or None if not multi-page
         """
@@ -310,26 +318,26 @@ class PreviewEngine:
                 sketches_dir = self.project_path
             else:
                 sketches_dir = self.project_path / "sketches"
-                
+
             page_pattern = f"{sketch_name}_page_*.png"
-            
+
             # First, try to find page files in the sketch's own folder (folder-based structure)
             sketch_folder = sketches_dir / sketch_name
             if sketch_folder.exists() and sketch_folder.is_dir():
                 page_files = list(sketch_folder.glob(page_pattern))
                 if page_files:
                     # Sort by page number
-                    page_files.sort(key=lambda f: int(f.stem.split('_page_')[-1]))
+                    page_files.sort(key=lambda f: int(f.stem.split("_page_")[-1]))
                     return page_files
-            
+
             # Fall back to flat structure: look in root sketches directory
             page_files = list(sketches_dir.glob(page_pattern))
-            
+
             if page_files:
                 # Sort by page number
-                page_files.sort(key=lambda f: int(f.stem.split('_page_')[-1]))
+                page_files.sort(key=lambda f: int(f.stem.split("_page_")[-1]))
                 return page_files
-            
+
             return None
         except Exception:
             return None
@@ -363,13 +371,15 @@ class PreviewEngine:
         """Trigger cache cleanup."""
         self.cache.cleanup_old_previews()
 
-    def generate_thumbnail(self, sketch_name: str, version: Optional[int] = None) -> Optional[str]:
+    def generate_thumbnail(
+        self, sketch_name: str, version: Optional[int] = None
+    ) -> Optional[str]:
         """Generate thumbnail for an existing cached preview.
-        
+
         Args:
             sketch_name: Name of the sketch
             version: Specific version, or None for current version
-            
+
         Returns:
             Thumbnail URL if successful, None otherwise
         """
@@ -377,17 +387,17 @@ class PreviewEngine:
 
     def get_available_sketches_with_thumbnails(self) -> List[Dict[str, Any]]:
         """Get all sketches with their thumbnail information.
-        
+
         Returns:
             List of sketch dictionaries with thumbnail URLs
         """
         sketches = []
-        
+
         # Get all cache entries
         for sketch_name, entry_list in self.cache.entries.items():
             if entry_list:
                 current_entry = entry_list[0]  # Most recent
-                
+
                 sketch_info = {
                     "name": sketch_name,
                     "has_preview": True,
@@ -396,14 +406,19 @@ class PreviewEngine:
                     "created_at": current_entry.created_at.isoformat(),
                     "file_size_bytes": current_entry.file_size_bytes,
                 }
-                
+
                 # Add thumbnail info if available
-                if current_entry.thumbnail_path and current_entry.thumbnail_path.exists():
-                    sketch_info["thumbnail_url"] = f"/thumbnail/{current_entry.thumbnail_path.name}"
+                if (
+                    current_entry.thumbnail_path
+                    and current_entry.thumbnail_path.exists()
+                ):
+                    sketch_info[
+                        "thumbnail_url"
+                    ] = f"/thumbnail/{current_entry.thumbnail_path.name}"
                     sketch_info["has_thumbnail"] = True
                 else:
                     sketch_info["has_thumbnail"] = False
-                
+
                 sketches.append(sketch_info)
-        
+
         return sketches
