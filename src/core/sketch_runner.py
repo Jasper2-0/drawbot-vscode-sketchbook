@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -26,6 +26,7 @@ class ExecutionResult:
     stdout: Optional[str] = None
     stderr: Optional[str] = None
     output_path: Optional[Path] = None
+    output_files: Optional[List[Path]] = None  # For multi-page outputs
     sketch_path: Optional[Path] = None
     timestamp: Optional[datetime] = None
 
@@ -126,28 +127,69 @@ os.chdir(r'{sketch_dir}')
 # Add project path to Python path for imports
 sys.path.insert(0, r'{self.project_path}')
 
-# Patch DrawBot for retina scaling using imageResolution
-def setup_retina_scaling():
+# Patch DrawBot for retina scaling and multi-page extraction
+def setup_drawbot_patches():
     try:
         import drawBot
-        # Store original saveImage function
+        from pathlib import Path
+        
+        # Store original functions
         _original_saveImage = drawBot.saveImage
-
-        def retina_saveImage(path, *args, **kwargs):
+        _original_newPage = drawBot.newPage
+        
+        # Track pages for multi-page documents
+        _page_count = 0
+        _current_sketch_name = Path(r'{sketch_path}').stem
+        _page_images = []  # Store individual pages as they're created
+        
+        def patched_newPage(*args, **kwargs):
+            nonlocal _page_count, _page_images
+            
+            # Before creating new page, save current page if we have content
+            if _page_count >= 0:  # Always save, including page 0 (first page)
+                try:
+                    page_filename = f"{{_current_sketch_name}}_page_{{_page_count + 1}}.png"
+                    page_path = Path(r'{sketch_path}').parent / page_filename
+                    _original_saveImage(str(page_path), imageResolution=216)
+                    _page_images.append(page_path)
+                    print(f"Saved page {{_page_count + 1}} to {{page_filename}}", file=sys.stderr)
+                except Exception as e:
+                    print(f"Warning: Could not save page {{_page_count + 1}}: {{e}}", file=sys.stderr)
+            
+            _page_count += 1
+            return _original_newPage(*args, **kwargs)
+        
+        def patched_saveImage(path, *args, **kwargs):
+            nonlocal _page_count, _page_images
+            
             # For PNG output, use high imageResolution for retina displays
             if str(path).lower().endswith('.png'):
-                # Set imageResolution to 216 DPI (3x the standard 72 DPI) for retina
                 kwargs['imageResolution'] = 216
-            # For other formats (GIF, JPEG, etc.), don't modify - let DrawBot handle them normally
-            return _original_saveImage(path, *args, **kwargs)
+            
+            # If this is a PDF and we have multiple pages, save the final page first
+            if str(path).lower().endswith('.pdf') and _page_count >= 0:
+                try:
+                    # Save the final page
+                    page_filename = f"{{_current_sketch_name}}_page_{{_page_count + 1}}.png"
+                    page_path = Path(path).parent / page_filename
+                    _original_saveImage(str(page_path), imageResolution=216)
+                    _page_images.append(page_path)
+                    print(f"Saved final page {{_page_count + 1}} to {{page_filename}}", file=sys.stderr)
+                except Exception as e:
+                    print(f"Warning: Could not save final page: {{e}}", file=sys.stderr)
+            
+            # Call original saveImage for the main output
+            result = _original_saveImage(path, *args, **kwargs)
+            return result
 
-        # Only patch saveImage function
-        drawBot.saveImage = retina_saveImage
+        # Apply patches
+        drawBot.newPage = patched_newPage
+        drawBot.saveImage = patched_saveImage
 
     except ImportError:
         pass  # DrawBot not available, skip patching
 
-setup_retina_scaling()
+setup_drawbot_patches()
 
 # Create output directory if it doesn't exist
 output_dir = r'{output_dir}'
@@ -189,17 +231,17 @@ except Exception as e:
                 return_code = process.returncode
 
                 # Determine output path (look for generated files)
-                output_path = self._find_output_files(output_dir)
+                output_path, output_files = self._find_output_files(output_dir)
 
                 # If no files found in output dir, also check sketch directory
                 if not output_path:
                     sketch_dir = sketch_path.parent
-                    output_path = self._find_output_files(sketch_dir)
+                    output_path, output_files = self._find_output_files(sketch_dir)
 
                 # If still no files found, check sketch's output subdirectory
                 if not output_path:
                     sketch_output_dir = sketch_path.parent / "output"
-                    output_path = self._find_output_files(sketch_output_dir)
+                    output_path, output_files = self._find_output_files(sketch_output_dir)
 
                 if return_code == 0:
                     return ExecutionResult(
@@ -207,6 +249,7 @@ except Exception as e:
                         stdout=stdout if stdout else None,
                         stderr=stderr if stderr else None,
                         output_path=output_path,
+                        output_files=output_files,
                     )
                 else:
                     # Extract error from stderr
@@ -237,15 +280,21 @@ except Exception as e:
                 success=False, error=f"Failed to execute sketch: {str(e)}"
             )
 
-    def _find_output_files(self, output_dir: Path) -> Optional[Path]:
-        """Find generated output files in the output directory."""
+    def _find_output_files(self, output_dir: Path) -> tuple[Optional[Path], Optional[List[Path]]]:
+        """Find generated output files in the output directory.
+        
+        Returns:
+            tuple: (primary_output_path, all_output_files)
+                   primary_output_path: Main output file (for backward compatibility)
+                   all_output_files: List of all output files (for multi-page support)
+        """
 
         # Common output extensions
         output_extensions = [".png", ".jpg", ".jpeg", ".pdf", ".svg", ".gif", ".mp4"]
 
         # Look for recently created files
         if not output_dir.exists():
-            return None
+            return None, None
 
         output_files = []
         for ext in output_extensions:
@@ -253,11 +302,21 @@ except Exception as e:
             matches = list(output_dir.glob(pattern))
             output_files.extend(matches)
 
-        if output_files:
-            # Return the most recently modified file
-            return max(output_files, key=lambda f: f.stat().st_mtime)
+        if not output_files:
+            return None, None
 
-        return None
+        # Check for multi-page pattern (page_1.png, page_2.png, etc.)
+        page_files = [f for f in output_files if f.stem.startswith('page_') and f.stem[5:].isdigit()]
+        
+        if page_files:
+            # Sort page files by page number
+            page_files.sort(key=lambda f: int(f.stem[5:]))
+            # Return first page as primary, all pages as list
+            return page_files[0], page_files
+        else:
+            # Single file output - return most recent as primary
+            primary_file = max(output_files, key=lambda f: f.stat().st_mtime)
+            return primary_file, [primary_file]
 
     def validate_sketch_before_run(self, sketch_path: Path) -> ExecutionResult:
         """Validate sketch syntax before execution.

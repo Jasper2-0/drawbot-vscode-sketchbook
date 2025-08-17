@@ -144,13 +144,22 @@ function scaleImageForRetina(img) {
 function updatePreviewImage(imageUrl) {
     if (!imageUrl) return;
 
+    // Check if this is a multi-page layout
+    const previewContent = document.getElementById('preview-content');
+    const isMultiPage = previewContent && previewContent.innerHTML.includes('Multi-page:');
+    
+    if (isMultiPage) {
+        // Don't override multi-page layouts with single-page updates
+        console.log('Skipping single-page update for multi-page layout');
+        return;
+    }
+
     const previewImg = document.getElementById('preview-image');
     if (previewImg) {
         previewImg.src = imageUrl + '&t=' + Date.now();
         scaleImageForRetina(previewImg);
     } else {
         // Create new image element
-        const previewContent = document.getElementById('preview-content');
         previewContent.innerHTML = `
             <div class="relative inline-block">
                 <img src="${imageUrl}&t=${Date.now()}" alt="${currentSketchName} preview"

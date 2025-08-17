@@ -12,6 +12,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 
 @dataclass
 class CacheEntry:
@@ -22,6 +28,8 @@ class CacheEntry:
     file_path: Path
     created_at: datetime
     file_size_bytes: int
+    thumbnail_path: Optional[Path] = None
+    thumbnail_size_bytes: Optional[int] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -31,6 +39,8 @@ class CacheEntry:
             "file_path": str(self.file_path),
             "created_at": self.created_at.isoformat(),
             "file_size_bytes": self.file_size_bytes,
+            "thumbnail_path": str(self.thumbnail_path) if self.thumbnail_path else None,
+            "thumbnail_size_bytes": self.thumbnail_size_bytes,
         }
 
     @classmethod
@@ -42,6 +52,8 @@ class CacheEntry:
             file_path=Path(data["file_path"]),
             created_at=datetime.fromisoformat(data["created_at"]),
             file_size_bytes=data["file_size_bytes"],
+            thumbnail_path=Path(data["thumbnail_path"]) if data.get("thumbnail_path") else None,
+            thumbnail_size_bytes=data.get("thumbnail_size_bytes"),
         )
 
 
@@ -52,6 +64,8 @@ class CacheResult:
     success: bool
     preview_url: Optional[str] = None
     preview_path: Optional[Path] = None
+    thumbnail_url: Optional[str] = None
+    thumbnail_path: Optional[Path] = None
     version: Optional[int] = None
     error: Optional[str] = None
 
@@ -65,6 +79,7 @@ class PreviewCache:
         max_versions_per_sketch: int = 5,
         max_total_size_mb: float = 100,
         max_age_hours: int = 24,
+        thumbnail_size: tuple = (300, 200),
     ):
         """Initialize preview cache.
 
@@ -73,11 +88,13 @@ class PreviewCache:
             max_versions_per_sketch: Maximum versions to keep per sketch
             max_total_size_mb: Maximum total cache size in MB
             max_age_hours: Maximum age for cache entries in hours
+            thumbnail_size: Thumbnail dimensions (width, height)
         """
         self.cache_dir = Path(cache_dir)
         self.max_versions_per_sketch = max_versions_per_sketch
         self.max_total_size_mb = max_total_size_mb
         self.max_age_hours = max_age_hours
+        self.thumbnail_size = thumbnail_size
 
         # Thread safety
         self.lock = threading.RLock()
@@ -150,6 +167,9 @@ class PreviewCache:
             for entry in entry_list:
                 if entry.file_path.exists():
                     referenced_files.add(entry.file_path)
+                    # Also track thumbnail files
+                    if entry.thumbnail_path and entry.thumbnail_path.exists():
+                        referenced_files.add(entry.thumbnail_path)
                     valid_entry_list.append(entry)
 
             if valid_entry_list:
@@ -247,6 +267,95 @@ class PreviewCache:
                     success=False, error=f"Failed to store preview: {str(e)}"
                 )
 
+    def _generate_thumbnail(self, full_image_path: Path, thumbnail_path: Path) -> bool:
+        """Generate thumbnail from full-size image.
+        
+        Args:
+            full_image_path: Path to the full-size image
+            thumbnail_path: Path where thumbnail should be saved
+            
+        Returns:
+            True if thumbnail was generated successfully
+        """
+        if not PIL_AVAILABLE:
+            return False
+            
+        try:
+            with Image.open(full_image_path) as img:
+                # Convert to RGB if necessary (for consistent output)
+                if img.mode not in ('RGB', 'RGBA'):
+                    img = img.convert('RGB')
+                
+                # Calculate thumbnail size maintaining aspect ratio
+                img.thumbnail(self.thumbnail_size, Image.Resampling.LANCZOS)
+                
+                # Create a canvas with the exact thumbnail size and center the image
+                thumb_width, thumb_height = self.thumbnail_size
+                canvas = Image.new('RGB', (thumb_width, thumb_height), (240, 240, 240))  # Light gray background
+                
+                # Calculate position to center the image
+                img_width, img_height = img.size
+                x = (thumb_width - img_width) // 2
+                y = (thumb_height - img_height) // 2
+                
+                # Paste the image onto the canvas
+                if img.mode == 'RGBA':
+                    canvas.paste(img, (x, y), img)
+                else:
+                    canvas.paste(img, (x, y))
+                
+                # Save thumbnail
+                canvas.save(thumbnail_path, 'PNG', optimize=True)
+                return True
+                
+        except Exception:
+            return False
+
+    def generate_thumbnail_for_entry(self, sketch_name: str, version: Optional[int] = None) -> Optional[str]:
+        """Generate thumbnail for an existing cache entry.
+        
+        Args:
+            sketch_name: Name of the sketch
+            version: Specific version, or None for current version
+            
+        Returns:
+            Thumbnail URL if successful, None otherwise
+        """
+        with self.lock:
+            # Get the cache entry
+            if version is not None:
+                entry = self.get_preview_version(sketch_name, version)
+            else:
+                entry = self.get_current_preview(sketch_name)
+                
+            if not entry or not entry.file_path.exists():
+                return None
+                
+            # Check if thumbnail already exists
+            if entry.thumbnail_path and entry.thumbnail_path.exists():
+                return f"/thumbnail/{entry.thumbnail_path.name}"
+            
+            # Generate thumbnail filename
+            base_filename = entry.file_path.stem  # e.g., "sketch_v123456789"
+            thumbnail_filename = f"{base_filename}_thumb.png"
+            thumbnail_path = self.cache_dir / thumbnail_filename
+            
+            # Generate thumbnail
+            if self._generate_thumbnail(entry.file_path, thumbnail_path):
+                # Update cache entry with thumbnail info
+                entry.thumbnail_path = thumbnail_path
+                try:
+                    entry.thumbnail_size_bytes = thumbnail_path.stat().st_size
+                except:
+                    entry.thumbnail_size_bytes = 0
+                
+                # Save updated metadata
+                self._save_metadata()
+                
+                return f"/thumbnail/{thumbnail_filename}"
+            
+            return None
+
     def get_current_preview(self, sketch_name: str) -> Optional[CacheEntry]:
         """Get the current (most recent) preview for a sketch.
 
@@ -311,6 +420,9 @@ class PreviewCache:
                 try:
                     if entry.file_path.exists():
                         entry.file_path.unlink()
+                    # Also remove thumbnail if it exists
+                    if entry.thumbnail_path and entry.thumbnail_path.exists():
+                        entry.thumbnail_path.unlink()
                 except:
                     pass  # Ignore cleanup errors
 
@@ -339,10 +451,12 @@ class PreviewCache:
                     if entry.created_at > cutoff_time:
                         valid_entries.append(entry)
                     else:
-                        # Remove old file
+                        # Remove old file and thumbnail
                         try:
                             if entry.file_path.exists():
                                 entry.file_path.unlink()
+                            if entry.thumbnail_path and entry.thumbnail_path.exists():
+                                entry.thumbnail_path.unlink()
                         except:
                             pass
 
@@ -384,6 +498,12 @@ class PreviewCache:
                     file_size_mb = entry.file_size_bytes / (1024 * 1024)
                     entry.file_path.unlink()
                     current_size_mb -= file_size_mb
+                
+                # Also remove thumbnail
+                if entry.thumbnail_path and entry.thumbnail_path.exists():
+                    thumb_size_mb = (entry.thumbnail_size_bytes or 0) / (1024 * 1024)
+                    entry.thumbnail_path.unlink()
+                    current_size_mb -= thumb_size_mb
 
                 # Remove from entries
                 if sketch_name in self.entries:
@@ -404,13 +524,16 @@ class PreviewCache:
         """Get total cache size in MB.
 
         Returns:
-            Total size of cached files in MB
+            Total size of cached files in MB (including thumbnails)
         """
         total_bytes = 0
         for entry_list in self.entries.values():
             for entry in entry_list:
                 if entry.file_path.exists():
                     total_bytes += entry.file_size_bytes
+                # Include thumbnail size if it exists
+                if entry.thumbnail_path and entry.thumbnail_path.exists():
+                    total_bytes += entry.thumbnail_size_bytes or 0
 
         return total_bytes / (1024 * 1024)
 
@@ -438,12 +561,14 @@ class PreviewCache:
     def clear_cache(self):
         """Clear all cached previews."""
         with self.lock:
-            # Remove all files
+            # Remove all files and thumbnails
             for entry_list in self.entries.values():
                 for entry in entry_list:
                     try:
                         if entry.file_path.exists():
                             entry.file_path.unlink()
+                        if entry.thumbnail_path and entry.thumbnail_path.exists():
+                            entry.thumbnail_path.unlink()
                     except:
                         pass
 

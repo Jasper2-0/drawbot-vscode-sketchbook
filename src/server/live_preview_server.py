@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import mimetypes
 import os
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -27,6 +28,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..core.preview_cache import PreviewCache
 from ..core.preview_engine import PreviewEngine, PreviewResult
+from ..core.thumbnail_generator import ThumbnailGenerator, TaskPriority
 from .file_watch_integration import FileWatchIntegration
 from .live_preview_manager import LivePreviewManager
 from .security_middleware import SecurityConfig, SecurityMiddleware
@@ -58,6 +60,12 @@ class LivePreviewServer:
         # Initialize core components
         self.cache = PreviewCache(cache_dir)
         self.preview_engine = PreviewEngine(project_path, self.cache)
+        
+        # Initialize thumbnail generator
+        self.thumbnail_generator = ThumbnailGenerator(self.preview_engine)
+        
+        # Set up thumbnail completion callback for WebSocket broadcasts
+        self.thumbnail_generator.add_completion_callback(self._on_thumbnail_completed)
 
         # Initialize live preview components
         self.preview_manager = LivePreviewManager(project_path, cache_dir)
@@ -142,6 +150,18 @@ class LivePreviewServer:
                         sketch_info[
                             "last_preview_generated"
                         ] = current_preview.created_at.isoformat()
+                        
+                        # Add thumbnail information
+                        if (current_preview.thumbnail_path and 
+                            current_preview.thumbnail_path.exists()):
+                            sketch_info["has_thumbnail"] = True
+                            sketch_info["thumbnail_url"] = f"/thumbnail/{current_preview.thumbnail_path.name}"
+                        else:
+                            sketch_info["has_thumbnail"] = False
+                            sketch_info["thumbnail_url"] = None
+                    else:
+                        sketch_info["has_thumbnail"] = False
+                        sketch_info["thumbnail_url"] = None
 
                     sketches.append(sketch_info)
 
@@ -177,6 +197,18 @@ class LivePreviewServer:
                             sketch_info[
                                 "last_preview_generated"
                             ] = current_preview.created_at.isoformat()
+                            
+                            # Add thumbnail information
+                            if (current_preview.thumbnail_path and 
+                                current_preview.thumbnail_path.exists()):
+                                sketch_info["has_thumbnail"] = True
+                                sketch_info["thumbnail_url"] = f"/thumbnail/{current_preview.thumbnail_path.name}"
+                            else:
+                                sketch_info["has_thumbnail"] = False
+                                sketch_info["thumbnail_url"] = None
+                        else:
+                            sketch_info["has_thumbnail"] = False
+                            sketch_info["thumbnail_url"] = None
 
                         sketches.append(sketch_info)
 
@@ -219,6 +251,18 @@ class LivePreviewServer:
                                     sketch_info[
                                         "last_preview_generated"
                                     ] = current_preview.created_at.isoformat()
+                                    
+                                    # Add thumbnail information
+                                    if (current_preview.thumbnail_path and 
+                                        current_preview.thumbnail_path.exists()):
+                                        sketch_info["has_thumbnail"] = True
+                                        sketch_info["thumbnail_url"] = f"/thumbnail/{current_preview.thumbnail_path.name}"
+                                    else:
+                                        sketch_info["has_thumbnail"] = False
+                                        sketch_info["thumbnail_url"] = None
+                                else:
+                                    sketch_info["has_thumbnail"] = False
+                                    sketch_info["thumbnail_url"] = None
 
                                 sketches.append(sketch_info)
 
@@ -226,6 +270,33 @@ class LivePreviewServer:
         sketches.sort(key=lambda s: (s["category"], s["modified_at"]), reverse=True)
 
         return sketches
+
+    def _on_thumbnail_completed(self, result):
+        """Handle thumbnail completion by broadcasting to WebSocket clients.
+        
+        Args:
+            result: TaskResult from thumbnail generator
+        """
+        # Broadcast thumbnail update to all connected clients
+        if hasattr(self, 'preview_manager'):
+            try:
+                # Create async task to broadcast to all clients watching this sketch
+                asyncio.create_task(
+                    self.preview_manager.broadcast_to_sketch(
+                        result.sketch_name,
+                        {
+                            "type": "thumbnail_updated",
+                            "sketch_name": result.sketch_name,
+                            "success": result.success,
+                            "thumbnail_url": result.thumbnail_url,
+                            "error": result.error,
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    )
+                )
+            except Exception as e:
+                # Don't let broadcast errors crash the system
+                print(f"Failed to broadcast thumbnail update: {e}")
 
     def execute_sketch(self, sketch_name: str) -> PreviewResult:
         """Execute a sketch and generate preview.
@@ -363,6 +434,26 @@ def create_app(server: LivePreviewServer) -> FastAPI:
     # Add security middleware
     app.add_middleware(server.security_middleware.get_middleware_class())
 
+    @app.on_event("startup")
+    async def startup_event():
+        """Initialize background services on server startup."""
+        # Start thumbnail generator
+        await server.thumbnail_generator.start()
+        
+        # Queue initial thumbnail generation for existing sketches
+        sketches = server.get_available_sketches()
+        if sketches:
+            server.thumbnail_generator.queue_multiple_sketches(
+                sketches,
+                user_sketch_priority=TaskPriority.HIGH,
+                example_priority=TaskPriority.MEDIUM
+            )
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Clean up background services on server shutdown."""
+        await server.thumbnail_generator.stop()
+
     @app.get("/health")
     async def health_check():
         """Health check endpoint."""
@@ -427,20 +518,94 @@ def create_app(server: LivePreviewServer) -> FastAPI:
 
         # Get current preview
         current_preview = server.cache.get_current_preview(sketch_name)
+        
+        # Check for multi-page files
+        multi_page_files = server.preview_engine.get_multi_page_files(sketch_name)
+        is_multi_page = multi_page_files is not None and len(multi_page_files) > 1
+        
+        # Minimal debug for multi-page detection
+        if sketch_name == 'multi_page_test':
+            print(f"DEBUG: multi_page_files={multi_page_files} is_multi_page={is_multi_page}")
 
         # Prepare context for template
         context = {
             "request": request,
             "sketch_name": sketch_name,
             "current_preview": current_preview,
+            "is_multi_page": is_multi_page,
         }
+        
+        # Debug context
+        if sketch_name == 'multi_page_test':
+            print(f"DEBUG: context is_multi_page={context['is_multi_page']}")
 
         if current_preview:
             context[
                 "image_url"
             ] = f"/preview/{current_preview.file_path.name}?v={current_preview.version}"
+            
+        # Add multi-page URLs if available
+        if is_multi_page:
+            page_urls = []
+            for i, page_file in enumerate(multi_page_files, 1):
+                page_urls.append({
+                    "page_number": i,
+                    "url": f"/page/{sketch_name}/{page_file.name}",
+                    "filename": page_file.name
+                })
+            context["page_urls"] = page_urls
+            context["total_pages"] = len(multi_page_files)
+            
+            # Debug page URLs
+            if sketch_name == 'multi_page_test':
+                print(f"DEBUG: page_urls={[p['url'] for p in page_urls]}")
 
         return templates.TemplateResponse("sketch_preview.html", context)
+
+    @app.get("/page/{sketch_name}/{page_filename}")
+    async def serve_page_image(sketch_name: str, page_filename: str, request: Request):
+        """Serve individual page images for multi-page sketches."""
+        # Validate sketch exists
+        validation = server.security_middleware.validate_sketch_path(sketch_name)
+        if not validation.valid:
+            raise HTTPException(
+                status_code=404, detail=f"Sketch not found: {sketch_name}"
+            )
+
+        # Validate page filename format and security
+        if not re.match(r"^[a-zA-Z0-9_]+_page_\d+\.png$", page_filename):
+            raise HTTPException(status_code=400, detail="Invalid page filename format")
+
+        # Build page file path
+        # Handle path resolution - if project_path already ends with 'sketches', use it directly
+        if Path(server.project_path).name == "sketches":
+            sketches_dir = Path(server.project_path)
+        else:
+            sketches_dir = Path(server.project_path) / "sketches"
+        
+        # First, try to find page file in the sketch's own folder (folder-based structure)
+        sketch_folder = sketches_dir / sketch_name
+        page_file_path = sketch_folder / page_filename
+        
+        if not (page_file_path.exists() and page_file_path.is_file()):
+            # Fall back to flat structure: look in root sketches directory
+            page_file_path = sketches_dir / page_filename
+            
+            if not (page_file_path.exists() and page_file_path.is_file()):
+                raise HTTPException(status_code=404, detail="Page file not found")
+
+        # Verify this page belongs to the requested sketch
+        if not page_filename.startswith(f"{sketch_name}_page_"):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        return FileResponse(
+            page_file_path,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "ETag": f'"{page_file_path.stat().st_mtime}"',
+            },
+        )
 
     @app.post("/execute/{sketch_name}")
     async def execute_sketch(sketch_name: str):
@@ -530,6 +695,96 @@ def create_app(server: LivePreviewServer) -> FastAPI:
                 ),
             },
         )
+
+    @app.get("/thumbnail/{filename}")
+    async def serve_thumbnail_image(filename: str, request: Request):
+        """Serve cached thumbnail images."""
+        # Security: validate filename
+        if ".." in filename or "/" in filename or "\\" in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+
+        image_path = server.cache_dir / filename
+
+        if not image_path.exists() or not image_path.is_file():
+            raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+        # Generate ETag based on file content
+        file_stat = image_path.stat()
+        etag = f'"{file_stat.st_mtime}-{file_stat.st_size}"'
+
+        # Check If-None-Match header
+        if_none_match = request.headers.get("if-none-match")
+        if if_none_match == etag:
+            return Response(status_code=304)
+
+        # Determine content type
+        content_type, _ = mimetypes.guess_type(str(image_path))
+        if not content_type:
+            content_type = "application/octet-stream"
+
+        return FileResponse(
+            path=image_path,
+            media_type=content_type,
+            headers={
+                "ETag": etag,
+                "Cache-Control": "public, max-age=3600",  # Cache thumbnails for 1 hour
+                "Last-Modified": datetime.fromtimestamp(file_stat.st_mtime).strftime(
+                    "%a, %d %b %Y %H:%M:%S GMT"
+                ),
+            },
+        )
+
+    @app.post("/generate-thumbnail/{sketch_name}")
+    async def generate_thumbnail(sketch_name: str):
+        """Generate thumbnail for a specific sketch."""
+        # Validate sketch exists
+        validation = server.security_middleware.validate_sketch_path(sketch_name)
+        if not validation.valid:
+            raise HTTPException(
+                status_code=404, detail=f"Sketch not found: {sketch_name}"
+            )
+
+        # Generate thumbnail using the preview engine
+        thumbnail_url = server.preview_engine.generate_thumbnail(sketch_name)
+        
+        if thumbnail_url:
+            return {
+                "success": True,
+                "sketch_name": sketch_name,
+                "thumbnail_url": thumbnail_url,
+                "timestamp": datetime.now().isoformat(),
+            }
+        else:
+            return {
+                "success": False,
+                "sketch_name": sketch_name,
+                "error": "Failed to generate thumbnail - sketch may not have a preview yet",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+    @app.get("/thumbnail-status")
+    async def get_thumbnail_status():
+        """Get thumbnail generation queue status."""
+        return server.thumbnail_generator.get_queue_status()
+
+    @app.post("/queue-thumbnails")
+    async def queue_thumbnail_generation():
+        """Queue thumbnail generation for all sketches without thumbnails."""
+        sketches = server.get_available_sketches()
+        
+        # Queue sketches for thumbnail generation
+        queued_count = server.thumbnail_generator.queue_multiple_sketches(
+            sketches,
+            user_sketch_priority=TaskPriority.HIGH,
+            example_priority=TaskPriority.MEDIUM
+        )
+        
+        return {
+            "success": True,
+            "queued_count": queued_count,
+            "total_sketches": len(sketches),
+            "timestamp": datetime.now().isoformat(),
+        }
 
     @app.get("/metrics")
     async def get_metrics():

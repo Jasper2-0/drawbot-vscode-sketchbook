@@ -66,19 +66,19 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-slate-800 flex items-center gap-3">
-                    🎨 <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{{ sketch_name }}</span>
+                    <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{{ sketch_name }}</span>
                 </h1>
                 <p class="text-slate-600 mt-2">Live preview with automatic refresh</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="executeSketch()" class="btn-primary flex items-center gap-2">
-                    <span class="text-lg">⚡</span> Execute Sketch
+                    Execute Sketch
                 </button>
                 <button onclick="forceRefresh()" class="btn-secondary flex items-center gap-2">
-                    <span class="text-lg">🔄</span> Refresh
+                    Refresh
                 </button>
                 <a href="/" class="btn-primary flex items-center gap-2 no-underline">
-                    <span class="text-lg">←</span> Back to List
+                    ← Back to List
                 </a>
             </div>
         </div>
@@ -91,17 +91,53 @@
     <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
         <div class="mb-4">
             <h2 class="text-xl font-semibold text-slate-700 flex items-center justify-center gap-2">
-                <span class="animate-pulse-slow">🖼️</span> Live Preview
+                Live Preview
             </h2>
         </div>
         <div id="preview-content" class="flex flex-col items-center gap-4">
-            {% if current_preview %}
-                <div class="relative inline-block">
+            {% if is_multi_page %}
+                <!-- Multi-page display -->
+                <div class="w-full max-w-4xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow-lg">
+                                Multi-page: {{ total_pages }} pages
+                            </div>
+                            <div class="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                                Latest
+                            </div>
+                        </div>
+                        {% if current_preview %}
+                        <div class="text-sm text-slate-500">
+                            <span class="font-medium">Last updated:</span> {{ current_preview.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- All pages display -->
+                    <div class="space-y-8">
+                        {% for page in page_urls %}
+                        <div class="relative bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                            <div class="absolute -top-3 -left-3 bg-slate-700 text-white text-sm px-3 py-1 rounded-full shadow-lg font-medium">
+                                Page {{ page.page_number }}
+                            </div>
+                            <div class="flex justify-center">
+                                <img src="{{ page.url }}" alt="{{ sketch_name }} page {{ page.page_number }}"
+                                     class="preview-image max-w-full rounded-lg shadow-md">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% elif current_preview %}
+                <!-- Single page display -->
+                <div class="relative" id="preview-container">
                     <img src="{{ image_url }}" alt="{{ sketch_name }} preview"
                          class="preview-image"
-                         id="preview-image">
+                         id="preview-image"
+                         onload="handleImageLoad(this)">
                     <div class="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
-                        ✨ Latest
+                        Latest
                     </div>
                 </div>
                 <div class="text-sm text-slate-500 mt-4 bg-slate-50 px-4 py-2 rounded-lg">
@@ -109,7 +145,7 @@
                 </div>
             {% else %}
                 <div class="text-center py-12">
-                    <div class="text-6xl mb-4 animate-bounce-slow">🎨</div>
+                    <div class="text-6xl mb-4 animate-bounce-slow text-gray-400">○</div>
                     <p class="text-slate-500 text-lg mb-6">No preview available yet</p>
                     <p class="text-slate-400">Click "Execute Sketch" to generate your first preview</p>
                 </div>
@@ -124,6 +160,35 @@
 <script>
     // Set current sketch name for JavaScript
     window.currentSketchName = '{{ sketch_name }}';
+
+    // Handle image loading and detect multi-page content
+    function handleImageLoad(img) {
+        const container = document.getElementById('preview-container');
+        const indicator = document.getElementById('multi-page-indicator');
+        
+        // Check if image is very tall (likely multi-page)
+        const aspectRatio = img.naturalHeight / img.naturalWidth;
+        const isMultiPage = aspectRatio > 3; // More than 3:1 aspect ratio suggests multi-page
+        
+        if (isMultiPage && container && indicator) {
+            // Apply multi-page styling
+            container.classList.add('multi-page-preview');
+            container.style.maxHeight = '80vh';
+            container.style.overflowY = 'auto';
+            
+            // Show multi-page indicator
+            indicator.classList.remove('hidden');
+            
+            // Log for debugging
+            console.log(`Multi-page detected: ${img.naturalWidth}x${img.naturalHeight} (aspect ratio: ${aspectRatio.toFixed(2)})`);
+        } else {
+            // Regular single-page image
+            container.classList.remove('multi-page-preview');
+            container.style.maxHeight = '';
+            container.style.overflowY = '';
+            indicator.classList.add('hidden');
+        }
+    }
 
     // Initialize sketch preview
     document.addEventListener('DOMContentLoaded', function() {

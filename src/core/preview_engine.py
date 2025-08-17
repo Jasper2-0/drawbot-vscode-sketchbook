@@ -13,9 +13,9 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from .image_converter import ConversionResult, ImageConverter
+# Note: ImageConverter removed - we now use DrawBot's native PNG output only
 from .preview_cache import CacheResult, PreviewCache
 from .sketch_runner import ExecutionResult, SketchRunner
 
@@ -29,6 +29,8 @@ class PreviewResult:
     execution_time: float = 0.0
     preview_url: Optional[str] = None
     preview_path: Optional[Path] = None
+    thumbnail_url: Optional[str] = None
+    thumbnail_path: Optional[Path] = None
     sketch_path: Optional[Path] = None
     timestamp: Optional[datetime] = None
     version: Optional[int] = None
@@ -51,7 +53,6 @@ class PreviewEngine:
 
         # Initialize components
         self.sketch_runner = SketchRunner(project_path, timeout)
-        self.image_converter = ImageConverter(retina_scale=3.0)
 
         # Execution management
         self.current_execution: Optional[asyncio.Task] = None
@@ -159,21 +160,26 @@ class PreviewEngine:
             return PreviewResult(success=True, preview_url=None, preview_path=None)
 
         try:
-            # Check if output is a direct image format (PNG, GIF, JPEG, etc.)
-            image_formats = {".png", ".gif", ".jpg", ".jpeg", ".webp", ".bmp"}
-            file_ext = execution_result.output_path.suffix.lower()
-
-            if file_ext in image_formats:
-                # Direct image output - store in cache
-                with open(execution_result.output_path, "rb") as f:
+            # Check for multi-page output first
+            if execution_result.output_files and len(execution_result.output_files) > 1:
+                # Multi-page output - use first page as primary preview
+                # TODO: Later we can enhance this to show all pages in sequence
+                primary_file = execution_result.output_files[0]
+                
+                with open(primary_file, "rb") as f:
                     image_data = f.read()
 
                 cache_result = self.cache.store_preview(cache_key, image_data)
                 if cache_result.success:
+                    # Try to generate thumbnail immediately
+                    thumbnail_url = self.cache.generate_thumbnail_for_entry(cache_key)
+                    
                     return PreviewResult(
                         success=True,
                         preview_url=cache_result.preview_url,
                         preview_path=cache_result.preview_path,
+                        thumbnail_url=thumbnail_url,
+                        thumbnail_path=cache_result.thumbnail_path,
                         version=cache_result.version,
                     )
                 else:
@@ -181,59 +187,152 @@ class PreviewEngine:
                         success=False,
                         error=f"Failed to cache preview: {cache_result.error}",
                     )
-
-            # Check if output is a PDF (typical DrawBot output)
-            elif file_ext == ".pdf":
-                # Read PDF data
-                with open(execution_result.output_path, "rb") as f:
-                    pdf_data = f.read()
-
-                # Convert PDF to PNG
-                conversion_result = self.image_converter.convert_pdf_to_png(
-                    pdf_data, self.cache.cache_dir
-                )
-
-                if not conversion_result.success:
-                    return PreviewResult(
-                        success=False,
-                        error=f"PDF conversion failed: {conversion_result.error}",
-                    )
-
-                # Store converted PNG in cache
-                with open(conversion_result.png_path, "rb") as f:
-                    image_data = f.read()
-
-                cache_result = self.cache.store_preview(cache_key, image_data)
-                if cache_result.success:
-                    # Clean up temporary conversion file
-                    try:
-                        conversion_result.png_path.unlink()
-                    except:
-                        pass  # Ignore cleanup errors
-
-                    return PreviewResult(
-                        success=True,
-                        preview_url=cache_result.preview_url,
-                        preview_path=cache_result.preview_path,
-                        version=cache_result.version,
-                    )
-                else:
-                    return PreviewResult(
-                        success=False,
-                        error=f"Failed to cache preview: {cache_result.error}",
-                    )
-
+            
+            # Single file output
             else:
-                # Unsupported output format
-                return PreviewResult(
-                    success=False,
-                    error=f"Unsupported output format: {execution_result.output_path.suffix}",
-                )
+                # Check if output is a direct image format (PNG, GIF, JPEG, etc.)
+                image_formats = {".png", ".gif", ".jpg", ".jpeg", ".webp", ".bmp"}
+                file_ext = execution_result.output_path.suffix.lower()
+
+                if file_ext in image_formats:
+                    # Direct image output - store in cache
+                    with open(execution_result.output_path, "rb") as f:
+                        image_data = f.read()
+
+                    cache_result = self.cache.store_preview(cache_key, image_data)
+                    if cache_result.success:
+                        # Try to generate thumbnail immediately
+                        thumbnail_url = self.cache.generate_thumbnail_for_entry(cache_key)
+                        
+                        return PreviewResult(
+                            success=True,
+                            preview_url=cache_result.preview_url,
+                            preview_path=cache_result.preview_path,
+                            thumbnail_url=thumbnail_url,
+                            thumbnail_path=cache_result.thumbnail_path,
+                            version=cache_result.version,
+                        )
+                    else:
+                        return PreviewResult(
+                            success=False,
+                            error=f"Failed to cache preview: {cache_result.error}",
+                        )
+
+                # For PDF files, look for auto-extracted pages
+                elif file_ext == ".pdf":
+                    extracted_pages = self._extract_pdf_pages(execution_result.output_path, cache_key)
+                    if extracted_pages:
+                        # Use first page as primary preview
+                        with open(extracted_pages[0], "rb") as f:
+                            image_data = f.read()
+
+                        cache_result = self.cache.store_preview(cache_key, image_data)
+                        if cache_result.success:
+                            # Try to generate thumbnail immediately
+                            thumbnail_url = self.cache.generate_thumbnail_for_entry(cache_key)
+                            
+                            return PreviewResult(
+                                success=True,
+                                preview_url=cache_result.preview_url,
+                                preview_path=cache_result.preview_path,
+                                thumbnail_url=thumbnail_url,
+                                thumbnail_path=cache_result.thumbnail_path,
+                                version=cache_result.version,
+                            )
+                        else:
+                            return PreviewResult(
+                                success=False,
+                                error=f"Failed to cache preview: {cache_result.error}",
+                            )
+                    else:
+                        # No extracted pages found, return error with helpful message
+                        return PreviewResult(
+                            success=False,
+                            error="Multi-page PDF detected but individual pages were not extracted. Please ensure your sketch uses drawbot.newPage() for multiple pages.",
+                        )
+                
+                else:
+                    # Unsupported output format
+                    return PreviewResult(
+                        success=False,
+                        error=f"Unsupported output format: {execution_result.output_path.suffix}",
+                    )
 
         except Exception as e:
             return PreviewResult(
                 success=False, error=f"Preview image generation failed: {str(e)}"
             )
+
+    def _extract_pdf_pages(self, pdf_path: Path, cache_key: str) -> Optional[List[Path]]:
+        """Extract individual pages from PDF by looking for auto-generated page files.
+        
+        Args:
+            pdf_path: Path to the PDF file
+            cache_key: Cache key for naming extracted pages
+            
+        Returns:
+            List of paths to extracted page PNG files, or None if extraction failed
+        """
+        try:
+            # Look for auto-generated page files in the same directory as the PDF
+            pdf_dir = pdf_path.parent
+            page_pattern = pdf_dir / f"{cache_key}_page_*.png"
+            
+            # Find all page files
+            page_files = list(pdf_dir.glob(f"{cache_key}_page_*.png"))
+            
+            if page_files:
+                # Sort by page number
+                page_files.sort(key=lambda f: int(f.stem.split('_page_')[-1]))
+                return page_files
+            
+            # If no auto-generated pages found, return None for now
+            # In the future, we could add actual PDF extraction here
+            return None
+            
+        except Exception as e:
+            return None
+
+    def get_multi_page_files(self, sketch_name: str) -> Optional[List[Path]]:
+        """Get all page files for a multi-page sketch.
+        
+        Args:
+            sketch_name: Name of the sketch
+            
+        Returns:
+            List of paths to page files, or None if not multi-page
+        """
+        try:
+            # Determine the correct sketches directory
+            # If project_path ends with 'sketches', use it directly
+            # Otherwise, append 'sketches' to it
+            if self.project_path.name == "sketches":
+                sketches_dir = self.project_path
+            else:
+                sketches_dir = self.project_path / "sketches"
+                
+            page_pattern = f"{sketch_name}_page_*.png"
+            
+            # First, try to find page files in the sketch's own folder (folder-based structure)
+            sketch_folder = sketches_dir / sketch_name
+            if sketch_folder.exists() and sketch_folder.is_dir():
+                page_files = list(sketch_folder.glob(page_pattern))
+                if page_files:
+                    # Sort by page number
+                    page_files.sort(key=lambda f: int(f.stem.split('_page_')[-1]))
+                    return page_files
+            
+            # Fall back to flat structure: look in root sketches directory
+            page_files = list(sketches_dir.glob(page_pattern))
+            
+            if page_files:
+                # Sort by page number
+                page_files.sort(key=lambda f: int(f.stem.split('_page_')[-1]))
+                return page_files
+            
+            return None
+        except Exception:
+            return None
 
     def _get_python_executable(self) -> str:
         """Get the appropriate Python executable, preferring virtual environment if available."""
@@ -263,3 +362,48 @@ class PreviewEngine:
     def cleanup_cache(self):
         """Trigger cache cleanup."""
         self.cache.cleanup_old_previews()
+
+    def generate_thumbnail(self, sketch_name: str, version: Optional[int] = None) -> Optional[str]:
+        """Generate thumbnail for an existing cached preview.
+        
+        Args:
+            sketch_name: Name of the sketch
+            version: Specific version, or None for current version
+            
+        Returns:
+            Thumbnail URL if successful, None otherwise
+        """
+        return self.cache.generate_thumbnail_for_entry(sketch_name, version)
+
+    def get_available_sketches_with_thumbnails(self) -> List[Dict[str, Any]]:
+        """Get all sketches with their thumbnail information.
+        
+        Returns:
+            List of sketch dictionaries with thumbnail URLs
+        """
+        sketches = []
+        
+        # Get all cache entries
+        for sketch_name, entry_list in self.cache.entries.items():
+            if entry_list:
+                current_entry = entry_list[0]  # Most recent
+                
+                sketch_info = {
+                    "name": sketch_name,
+                    "has_preview": True,
+                    "preview_url": f"/preview/{current_entry.file_path.name}",
+                    "version": current_entry.version,
+                    "created_at": current_entry.created_at.isoformat(),
+                    "file_size_bytes": current_entry.file_size_bytes,
+                }
+                
+                # Add thumbnail info if available
+                if current_entry.thumbnail_path and current_entry.thumbnail_path.exists():
+                    sketch_info["thumbnail_url"] = f"/thumbnail/{current_entry.thumbnail_path.name}"
+                    sketch_info["has_thumbnail"] = True
+                else:
+                    sketch_info["has_thumbnail"] = False
+                
+                sketches.append(sketch_info)
+        
+        return sketches
